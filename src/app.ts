@@ -21,10 +21,12 @@ app.use(cors({
 import authentication from './routes/v1/auth/authentication';
 import user from './routes/v1/users';
 import comunities from './routes/v1/comunities';
+import post from './routes/v1/posts';
 
 app.use('/api/v1/auth', authentication);
 app.use('/api/v1/user', user);
 app.use('/api/v1/group', comunities);
+app.use('/api/v1/post', post);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Hello World!');
@@ -37,4 +39,3 @@ const server = http.createServer(app);
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
-

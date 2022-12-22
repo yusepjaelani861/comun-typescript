@@ -49,7 +49,7 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
 
     const my_member = group.group_members.find((member: any) => member.user_id === req.user?.id);
     group.is_status = my_member ? my_member.status : 'not_member';
-    group.is_member = joinedGroup(group, req.user?.id) ?? false;
+    group.is_member = await joinedGroup(group, req.user?.id) ?? false;
     group.is_owner = group.group_members.find((member: any) => member.user_id === req.user?.id && member.group_role.slug === 'owner') ? true : false;
     group.total_member = group.group_members.length;
     group.total_post = group.group_posts.length;
@@ -118,10 +118,10 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
         })
     }
 
-    groups = groups.map((group: any) => {
+    groups = await Promise.all(groups.map(async (group: any) => {
         const my_member = group.group_members.find((member: any) => member.user_id === req.user?.id);
         group.is_status = my_member ? my_member.status : 'not_member';
-        group.is_member = joinedGroup(group, req.user?.id) ?? false;
+        group.is_member = await joinedGroup(group, req.user?.id) ?? false;
         group.is_owner = group.group_members.find((member: any) => member.user_id === req.user?.id && member.group_role.slug === 'owner') ? true : false;
         group.group_member_count = group.group_members.length;
         group.post_count = group.group_posts.length;
@@ -129,7 +129,7 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
         delete group.group_posts;
         delete group.group_roles;
         return group;
-    })
+    }));
 
     return res.status(200).json(new sendResponse(groups, 'Daftar komunitas ditemukan', pagination(page, limit, total), 200));
 })

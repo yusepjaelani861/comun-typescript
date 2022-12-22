@@ -8,61 +8,6 @@ import { pagination } from "../../../libraries/helper";
 
 const prisma = new PrismaClient();
 
-export const listRoles = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
-    const { slug } = req.params;
-    const { name } = req.query;
-
-    const group = await prisma.group.findFirst({
-        where: {
-            slug: slug
-        }
-    })
-
-    if (!group) {
-        return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
-    }
-
-    const permission = myPermissionGroup(group, req.user.id, 'kelola_roles');
-
-    if (!permission) {
-        return next(new sendError('Anda tidak memiliki akses', [], 'PROCESS_ERROR', 400));
-    }
-
-    let group_role: any;
-    if (name) {
-        group_role = await prisma.groupRole.findMany({
-            where: {
-                slug: {
-                    contains: name.tolowerCase()
-                },
-                group_id: group.id
-            }
-        })
-    } else {
-        group_role = await prisma.groupRole.findMany({
-            where: {
-                group_id: group.id
-            }
-        })
-    }
-
-    await Promise.all(group_role.map(async (item: any) => {
-        const member = await prisma.groupMember.findMany({
-            where: {
-                group_id: group.id,
-                group_role_id: item.id
-            }
-        })
-
-        item.total_member = member.length;
-
-
-        return item;
-    }))
-
-    return res.status(200).json(new sendResponse(group_role, 'Berhasil mengambil data', {}, 200));
-})
-
 export const listPermissionRoles = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     return res.status(200).json(new sendResponse(list_permission_roles, 'Berhasil mengambil data', {}, 200));
 })
@@ -403,3 +348,36 @@ export const changeRoleMember = asyncHandler(async (req: any, res: Response, nex
 
     return res.status(200).json(new sendResponse(update_role, 'Berhasil mengubah role member', {}, 200));
 })
+
+export const validation = (method : string) => {
+    switch (method) {
+        case 'createRoles': {
+            return [
+                body('permissions').isArray().withMessage('permissions harus berupa array')
+                    .notEmpty().withMessage('permissions tidak boleh kosong'),
+                body('group_role_name').notEmpty().withMessage('Nama role tidak boleh kosong')
+            ]
+            break;
+        }
+
+        case 'changeStatusPermission': {
+            return [
+                body('group_role_permission_id').notEmpty().withMessage('group_role_permission_id tidak boleh kosong'),
+                body('group_role_permission_status').notEmpty().withMessage('group_role_permission_status tidak boleh kosong')
+            ]
+            break;
+        }
+
+        case 'changeRoleMember': {
+            return [
+                body('user_id').notEmpty().withMessage('user_id tidak boleh kosong'),
+                body('group_role_id').notEmpty().withMessage('group_role_id tidak boleh kosong')
+            ]
+            break;
+        }
+
+        default: {
+            return [];
+        }
+    }
+}

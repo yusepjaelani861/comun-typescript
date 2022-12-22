@@ -895,6 +895,7 @@ export const myPermissionGroup = async (group: any, user_id: number, slug: strin
 }
 
 export const joinedGroup = async (group: any, user_id: number) => {
+    if (!user_id || !group) return false
     const group_member = await prisma.groupMember.findFirst({
         where: {
             group_id: group.id,
