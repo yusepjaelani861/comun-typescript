@@ -1,0 +1,447 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  username String?   @unique
+  email     String?   @unique
+  email_verified_at DateTime?
+  password  String?
+  phonenumber String?
+  country_code_phonenumber String?
+  bio String?
+  avatar String?
+  background String?
+  otp String?
+  otp_created_at DateTime?
+  username_updated_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  provider_id String?
+  provider String?
+  posts Post[]
+  post_votes PostVoteMember[]
+  post_vote_options PostVoteOption[]
+  post_upvotes PostUpvote[]
+  post_downvotes PostDownvote[]
+  post_comments PostComment[]
+  post_comment_upvotes PostCommentUpvote[]
+  post_comment_downvotes PostCommentDownvote[]
+  notifications Notification[]
+  configs UserConfig[]
+  post_reports PostReport[]
+  group_members GroupMember[]
+}
+
+model ResetPassword {
+  id Int @id @default(autoincrement())
+  user_id Int
+  email String
+  token String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model UserConfig {
+  id Int @id @default(autoincrement())
+  user_id Int
+  config_id Int
+  value Boolean @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user User @relation(fields: [user_id], references: [id])
+  config Config @relation(fields: [config_id], references: [id])
+}
+
+model Config {
+  id Int @id @default(autoincrement())
+  label String
+  name String
+  is_on_notification Boolean @default(true)
+  is_on_view Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user_configs UserConfig[]
+}
+
+model Post {
+  id Int @id @default(autoincrement())
+  user_id Int
+  group_id Int
+  title String
+  slug String
+  body Json
+  attachments String?
+  seo_title String?
+  seo_description String?
+  content_type ContentType
+  question_post_id Int?
+  status PostStatus @default(published)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user User @relation(fields: [user_id], references: [id])
+  group Group @relation(fields: [group_id], references: [id])
+  post_votes PostVoteMember[]
+  post_upvotes PostUpvote[]
+  post_downvotes PostDownvote[]
+  post_comments PostComment[]
+  post_tags PostTag[]
+  group_analytics GroupAnalytic[]
+  post_reports PostReport[]
+}
+
+enum ContentType {
+  post
+  question
+  voting
+  video
+  shortvideo
+  answer_question
+}
+
+enum PostStatus {
+  published
+  pending
+  reject
+  report
+}
+
+model PostReport {
+  id Int @id @default(autoincrement())
+  post_id Int?
+  user_id Int?
+  group_id Int?
+  reason PostReportReason
+  body Json?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post Post? @relation(fields: [post_id], references: [id])
+  user User? @relation(fields: [user_id], references: [id])
+  group Group? @relation(fields: [group_id], references: [id])
+}
+
+enum PostReportReason {
+  nudity
+  spam
+  violence
+  suicidal
+  falseinformation
+  hatespeech
+  terrorism
+  other
+}
+
+model PostVoteMember {
+  id Int @id @default(autoincrement())
+  post_option_id Int
+  post_id Int
+  user_id Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post_vote_option PostVoteOption @relation(fields: [post_option_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model PostVoteOption {
+  id Int @id @default(autoincrement())
+  post_id Int
+  user_id Int
+  name String
+  image String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post_vote_members PostVoteMember[]
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model PostUpvote {
+  id Int @id @default(autoincrement())
+  post_id Int
+  post_user_id Int
+  user_id Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post Post @relation(fields: [post_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model PostDownvote {
+  id Int @id @default(autoincrement())
+  post_id Int
+  post_user_id Int
+  user_id Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post Post @relation(fields: [post_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model PostComment {
+  id Int @id @default(autoincrement())
+  par_comment_id Int?
+  post_id Int
+  post_user_id Int
+  user_id Int
+  attachment String?
+  body String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post Post @relation(fields: [post_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+  post_comment_upvotes PostCommentUpvote[]
+  post_comment_downvotes PostCommentDownvote[]
+}
+
+model PostCommentUpvote {
+  id Int @id @default(autoincrement())
+  post_comment_id Int
+  post_comment_user_id Int
+  user_id Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post_comment PostComment @relation(fields: [post_comment_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model PostCommentDownvote {
+  id Int @id @default(autoincrement())
+  post_comment_id Int
+  post_comment_user_id Int
+  user_id Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post_comment PostComment @relation(fields: [post_comment_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model PostTag {
+  id Int @id @default(autoincrement())
+  post_id Int
+  tag_id Int
+  tag_name String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post Post @relation(fields: [post_id], references: [id])
+  tag Tag @relation(fields: [tag_id], references: [id])
+}
+
+model Tag {
+  id Int @id @default(autoincrement())
+  name String
+  slug String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post_tags PostTag[]
+}
+
+model Group {
+  id Int @id @default(autoincrement())
+  name String
+  slug String
+  tagline String?
+  avatar String?
+  background String?
+  color String?
+  privacy GroupPrivacy @default(public)
+  slug_updated_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group_roles GroupRole[]
+  group_members GroupMember[]
+  group_navigations GroupNavigation[]
+  group_dompet GroupDompet?
+  group_payments GroupPayment[]
+  group_posts Post[]
+  group_transactions GroupTransaction[]
+  group_analytics GroupAnalytic[]
+  post_reports PostReport[]
+}
+
+enum GroupPrivacy {
+  public
+  private
+  restricted
+}
+
+model GroupRole {
+  id Int @id @default(autoincrement())
+  group_id Int
+  name String
+  slug String
+  description String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group_role_permissions GroupRolePermission[]
+  group_members GroupMember[]
+  group Group @relation(fields: [group_id], references: [id])
+}
+
+model GroupRolePermission {
+  id Int @id @default(autoincrement())
+  group_role_id Int
+  name String
+  slug String
+  description String?
+  label String?
+  status Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group_role GroupRole @relation(fields: [group_role_id], references: [id])
+}
+
+model GroupMember {
+  id Int @id @default(autoincrement())
+  group_id Int
+  user_id Int
+  group_role_id Int
+  status GroupMemberStatus @default(pending)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group_role GroupRole @relation(fields: [group_role_id], references: [id])
+  group Group @relation(fields: [group_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+enum GroupMemberStatus {
+  joined
+  pending
+  banned
+}
+
+model GroupNavigation {
+  id Int @id @default(autoincrement())
+  group_id Int
+  type GroupNavigationType
+  title String
+  icon String?
+  url String?
+  order Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group Group @relation(fields: [group_id], references: [id])
+}
+
+enum GroupNavigationType {
+  url
+  post
+  list_post
+  list_member
+  leaderboard
+}
+
+model GroupDompet {
+  id Int @id @default(autoincrement())
+  group_id Int @unique
+  balance BigInt @default(0)
+  payout BigInt @default(0)
+  total_earning BigInt @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group Group @relation(fields: [group_id], references: [id])
+}
+
+model GroupPayment {
+  id Int @id @default(autoincrement())
+  group_id Int
+  method_payment_id Int
+  name String
+  number String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group Group @relation(fields: [group_id], references: [id])
+  method_payment MethodPayment @relation(fields: [method_payment_id], references: [id])
+}
+
+model MethodPayment {
+  id Int @id @default(autoincrement())
+  name String
+  code String
+  icon String
+  type MethodPaymentType
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group_payments GroupPayment[]
+}
+
+enum MethodPaymentType {
+  bank
+  ewallet
+}
+
+model GroupTransaction {
+  id Int @id @default(autoincrement())
+  group_id Int
+  amount BigInt
+  method Json
+  account String
+  status GroupTransactionStatus @default(pending)
+  data_json Json
+  note String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group Group @relation(fields: [group_id], references: [id])
+}
+
+enum GroupTransactionStatus {
+  pending
+  approve
+  success
+  reject
+}
+
+model GroupAnalytic {
+  id Int @id @default(autoincrement())
+  group_id Int
+  post_id Int
+  ip String?
+  referer String?
+  user_agent String?
+  country_name String?
+  country_code String?
+  region_name String?
+  region_code String?
+  city_name String?
+  zip_code String?
+  iso_code String?
+  latitude Float?
+  longitude Float?
+  metro_code Int?
+  area_code Int?
+  time_zone String?
+  width_screen Int?
+  height_screen Int?
+  language_code String?
+  client_type_data Json?
+  spend_time BigInt?
+  earning BigInt?
+  url Json?
+  unique Boolean? @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group Group @relation(fields: [group_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id])
+}
+
+model Notification {
+  id Int @id @default(autoincrement())
+  user_id Int
+  from_user_id Int
+  body Json?
+  type String?
+  url String?
+  is_read Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user User @relation(fields: [user_id], references: [id])
+}
