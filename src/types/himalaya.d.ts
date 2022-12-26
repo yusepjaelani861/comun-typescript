@@ -14,4 +14,5 @@ declare module 'himalaya' {
     
     export function parse(html: string): Node[];
     export function stringify(nodes: Node[]): string;
+    export function find(nodes: Node[], predicate: (node: Node) => boolean): Node[];
 }
