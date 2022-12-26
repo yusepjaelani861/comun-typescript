@@ -22,6 +22,7 @@ import authentication from './routes/v1/auth/authentication';
 import user from './routes/v1/users';
 import comunities from './routes/v1/comunities';
 import post from './routes/v1/posts';
+import { sendError } from './libraries/rest';
 
 app.use('/api/v1/auth', authentication);
 app.use('/api/v1/user', user);
@@ -35,6 +36,14 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use(errorHandler);
 const server = http.createServer(app);
+
+app.get('*', (req: Request, res: Response) => {
+    res.status(404).json(new sendError('Not Found', [], 'NOT_FOUND', 404));
+})
+
+app.post('*', (req: Request, res: Response) => {
+    res.status(404).json(new sendError('Not Found', [], 'NOT_FOUND', 404));
+})
 
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
