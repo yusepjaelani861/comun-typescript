@@ -65,7 +65,25 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
     page = parseInt(page);
     limit = parseInt(limit);
 
-    let groups: any;
+    let groups: any, orderBy : Array<any> = [];
+
+    if (Object.keys(req.query).length > 0) {
+        Object.keys(req.query).forEach((filter, index) => {
+            let key_and_op = filter.split('.');
+            
+            if (key_and_op.length > 1) {
+                let key = key_and_op[0];
+                let op = key_and_op[1];
+                let value = req.query[filter];
+                
+                if (key == 'sort') {
+                    orderBy.push({
+                        [op]: value
+                    })
+                }
+            }
+        })
+    }
 
     const total = await prisma.group.count();
     if (search) {
@@ -93,9 +111,7 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
                 group_posts: true,
                 group_roles: true,
             },
-            orderBy: {
-                created_at: 'desc'
-            },
+            orderBy: orderBy,
             skip: (page - 1) * limit,
             take: limit,
         })
@@ -110,9 +126,7 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
                 group_posts: true,
                 group_roles: true,
             },
-            orderBy: {
-                created_at: 'desc'
-            },
+            orderBy: orderBy,
             skip: (page - 1) * limit,
             take: limit,
         })
