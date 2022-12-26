@@ -1,13 +1,33 @@
 import express from "express";
-import { protect } from "../../../middleware/auth";
+import { protect, withtoken } from "../../../middleware/auth";
 import {
-    test
+    createPost,
+    deletePost,
+    posts,
+    updatePost,
+    validation,
 } from "../../../controllers/v1/posts/manage";
 
 const router = express.Router();
 
 router
-    .route("/test")
-    .get(test);
+    .route("/create")
+    .post(protect, validation("createPost"), createPost);
+
+router
+    .route("/update/:slug")
+    .post(protect, validation("updatePost"), updatePost);
+
+router
+    .route("/delete/:slug")
+    .delete(protect, deletePost);
+
+router
+    .route("/:type")
+    .get(withtoken, posts)
+
+router
+    .route("/:type/:slug")
+    .get(withtoken, posts)
 
 export default router;
