@@ -30,6 +30,8 @@ model User {
   updated_at DateTime @updatedAt
   provider_id String?
   provider String?
+  followers UserFollow[] @relation("follower_user")
+  followings UserFollow[] @relation("user")
   posts Post[]
   post_votes PostVoteMember[]
   post_vote_options PostVoteOption[]
@@ -42,6 +44,16 @@ model User {
   configs UserConfig[]
   post_reports PostReport[]
   group_members GroupMember[]
+}
+
+model UserFollow {
+  id Int @id @default(autoincrement())
+  user_id Int
+  follow_user_id Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user User @relation("user", fields: [user_id], references: [id])
+  follower_user User @relation("follower_user", fields: [follow_user_id], references: [id])
 }
 
 model ResetPassword {
@@ -99,6 +111,7 @@ model Post {
   post_tags PostTag[]
   group_analytics GroupAnalytic[]
   post_reports PostReport[]
+  post_vote_options PostVoteOption[]
 }
 
 enum ContentType {
@@ -126,7 +139,7 @@ model PostReport {
   body Json?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  post Post? @relation(fields: [post_id], references: [id])
+  post Post? @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User? @relation(fields: [user_id], references: [id])
   group Group? @relation(fields: [group_id], references: [id])
 }
@@ -150,7 +163,7 @@ model PostVoteMember {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post_vote_option PostVoteOption @relation(fields: [post_option_id], references: [id])
-  post Post @relation(fields: [post_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
@@ -164,6 +177,7 @@ model PostVoteOption {
   updated_at DateTime @updatedAt
   post_vote_members PostVoteMember[]
   user User @relation(fields: [user_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
 }
 
 model PostUpvote {
@@ -173,7 +187,7 @@ model PostUpvote {
   user_id Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  post Post @relation(fields: [post_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
@@ -184,7 +198,7 @@ model PostDownvote {
   user_id Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  post Post @relation(fields: [post_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
@@ -198,7 +212,7 @@ model PostComment {
   body String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  post Post @relation(fields: [post_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
   post_comment_upvotes PostCommentUpvote[]
   post_comment_downvotes PostCommentDownvote[]
@@ -211,7 +225,7 @@ model PostCommentUpvote {
   user_id Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  post_comment PostComment @relation(fields: [post_comment_id], references: [id])
+  post_comment PostComment @relation(fields: [post_comment_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
@@ -222,18 +236,18 @@ model PostCommentDownvote {
   user_id Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  post_comment PostComment @relation(fields: [post_comment_id], references: [id])
+  post_comment PostComment @relation(fields: [post_comment_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
 model PostTag {
-  id Int @id @default(autoincrement())
+  id Int @id @default(autoincrement()) 
   post_id Int
   tag_id Int
   tag_name String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  post Post @relation(fields: [post_id], references: [id])
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   tag Tag @relation(fields: [tag_id], references: [id])
 }
 
@@ -438,11 +452,22 @@ model Notification {
   id Int @id @default(autoincrement())
   user_id Int
   from_user_id Int
-  body Json?
-  type String?
+  body String?
+  type NotificationType?
   url String?
   is_read Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   user User @relation(fields: [user_id], references: [id])
+}
+
+enum NotificationType {
+  post
+  post_upvote
+  post_downvote
+  comment
+  comment_upvote
+  comment_downvote
+  follow
+  report
 }
