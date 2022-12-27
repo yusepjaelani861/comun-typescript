@@ -14,11 +14,11 @@ export const checkComunityID = asyncHandler(async (req: any, res: Response, next
         return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
     }
 
-    const { group_slug } = req.body;
+    const { slug } = req.body;
 
     const group = await prisma.group.findFirst({
         where: {
-            slug: group_slug
+            slug: slug
         }
     })
 
@@ -152,7 +152,7 @@ export const validation = (method: string) => {
     switch (method) {
         case 'checkComunityID': {
             return [
-                body("group_slug", "Group slug is required")
+                body("slug", "Group slug is required")
                     .exists()
                     .matches(/^[a-zA-Z0-9_.-]*$/)
                     .withMessage("Group slug must be A-z a-z 0-9 _ - ."),

@@ -15,14 +15,23 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
     }
 
     const {
-        group_name,
-        group_slug,
-        group_tagline,
-        group_avatar,
-        group_background,
-        group_color,
-        group_privacy,
+        name,
+        slug,
+        tagline,
+        avatar,
+        background,
+        color,
+        privacy,
     } = req.body;
+
+    const 
+        group_name = name,
+        group_slug = slug,
+        group_tagline = tagline,
+        group_avatar = avatar,
+        group_background = background,
+        group_color = color,
+        group_privacy = privacy;
 
     const { id } = req.user;
 
@@ -428,13 +437,13 @@ export const validation = (method: string) => {
     switch (method) {
         case 'createComunity': {
             return [
-                body('group_name').notEmpty().withMessage('Nama komunitas tidak boleh kosong!'),
-                body('group_slug').notEmpty().withMessage('Slug komunitas tidak boleh kosong!'),
-                body('group_tagline').notEmpty().withMessage('Tagline komunitas tidak boleh kosong!'),
-                body('group_avatar').optional(),
-                body('group_background').notEmpty().withMessage('Background komunitas tidak boleh kosong!'),
-                body('group_color').notEmpty().withMessage('Warna komunitas tidak boleh kosong!'),
-                body('group_privacy').notEmpty().withMessage('Tipe komunitas tidak boleh kosong!'),
+                body('name').notEmpty().withMessage('Nama komunitas tidak boleh kosong!'),
+                body('slug').notEmpty().withMessage('Slug komunitas tidak boleh kosong!'),
+                body('tagline').notEmpty().withMessage('Tagline komunitas tidak boleh kosong!'),
+                body('avatar').optional(),
+                body('background').notEmpty().withMessage('Background komunitas tidak boleh kosong!'),
+                body('color').notEmpty().withMessage('Warna komunitas tidak boleh kosong!'),
+                body('privacy').notEmpty().withMessage('Tipe komunitas tidak boleh kosong!'),
             ]
             break;
         }

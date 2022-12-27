@@ -17,7 +17,9 @@ export const kickMember = asyncHandler(async (req: any, res: Response, next: Nex
 
     const { slug } = req.params;
 
-    const { group_member_id } = req.body;
+    const { id } = req.body;
+    const group_member_id = parseInt(id);
+    // const { group_member_id } = req.body;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -116,7 +118,10 @@ export const actionRequestJoin = asyncHandler(async (req: any, res: Response, ne
     }
 
     const { slug } = req.params;
-    const { group_member_user_id, action } = req.body;
+    const { user_id, action } = req.body;
+    // const { group_member_user_id, action } = req.body;
+
+    const group_member_user_id = user_id;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -178,21 +183,30 @@ export const editComunity = asyncHandler(async (req: any, res: Response, next: N
         return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
     }
 
-    const { slug } = req.params;
+    const { slug_group } = req.params;
 
     const {
-        group_name,
-        group_tagline,
-        group_slug,
-        group_avatar,
-        group_background,
-        group_color,
-        group_privacy,
+        name, 
+        tagline,
+        slug,
+        avatar,
+        background,
+        color,
+        privacy,
     } = req.body;
+
+    const
+        group_name = name,
+        group_tagline = tagline,
+        group_slug = slug,
+        group_avatar = avatar,
+        group_background = background,
+        group_color = color,
+        group_privacy = privacy;
 
     const group = await prisma.group.findFirst({
         where: {
-            slug: slug
+            slug: slug_group
         }
     })
 
@@ -233,7 +247,7 @@ export const validation = (method : string) => {
     switch (method) {
         case 'kickMember': {
             return [
-                body('group_member_id').notEmpty().withMessage('grop_member_id tidak boleh kosong'),
+                body('id').notEmpty().withMessage('id tidak boleh kosong'),
             ]
             break;
         }
@@ -241,20 +255,20 @@ export const validation = (method : string) => {
         case 'actionRequestJoin': {
             return [
                 body('action').notEmpty().withMessage('action tidak boleh kosong').isIn(['accept', 'reject']).withMessage('action tidak valid'),
-                body('group_member_user_id').notEmpty().withMessage('group_member_user_id tidak boleh kosong'),
+                body('user_id').notEmpty().withMessage('user_id tidak boleh kosong'),
             ]
             break;
         }
 
         case 'editComunity': {
             return [
-                body('group_name').optional(),
-                body('group_tagline').optional(),
-                body('group_slug').optional(),
-                body('group_avatar').optional(),
-                body('group_background').optional(),
-                body('group_color').optional(),
-                body('group_privacy').optional(),
+                body('name').optional(),
+                body('tagline').optional(),
+                body('slug').optional(),
+                body('avatar').optional(),
+                body('background').optional(),
+                body('color').optional(),
+                body('privacy').optional(),
             ]
             break;
         }

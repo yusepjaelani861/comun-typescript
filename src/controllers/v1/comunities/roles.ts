@@ -19,7 +19,11 @@ export const createRoles = asyncHandler(async (req: any, res: Response, next: Ne
     }
 
     const { slug } = req.params;
-    const { permissions, group_role_name } = req.body;
+    const {
+        permissions,
+        name,
+    } = req.body
+    const group_role_name = name;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -180,9 +184,12 @@ export const changeStatusPermission = asyncHandler(async (req: any, res: Respons
 
     const { slug } = req.params;
     const {
-        group_role_permission_id,
-        group_role_permission_status,
+        id,
+        status,
     } = req.body;
+    const 
+        group_role_permission_id = id,
+        group_role_permission_status = status;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -283,7 +290,8 @@ export const changeRoleMember = asyncHandler(async (req: any, res: Response, nex
     }
 
     const { slug } = req.params;
-    const { user_id, group_role_id } = req.body;
+    const { user_id, id } = req.body;
+    const group_role_id = id;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -355,15 +363,15 @@ export const validation = (method : string) => {
             return [
                 body('permissions').isArray().withMessage('permissions harus berupa array')
                     .notEmpty().withMessage('permissions tidak boleh kosong'),
-                body('group_role_name').notEmpty().withMessage('Nama role tidak boleh kosong')
+                body('name').notEmpty().withMessage('Nama role tidak boleh kosong')
             ]
             break;
         }
 
         case 'changeStatusPermission': {
             return [
-                body('group_role_permission_id').notEmpty().withMessage('group_role_permission_id tidak boleh kosong'),
-                body('group_role_permission_status').notEmpty().withMessage('group_role_permission_status tidak boleh kosong')
+                body('id').notEmpty().withMessage('id tidak boleh kosong'),
+                body('status').notEmpty().withMessage('status tidak boleh kosong')
             ]
             break;
         }
@@ -371,7 +379,7 @@ export const validation = (method : string) => {
         case 'changeRoleMember': {
             return [
                 body('user_id').notEmpty().withMessage('user_id tidak boleh kosong'),
-                body('group_role_id').notEmpty().withMessage('group_role_id tidak boleh kosong')
+                body('id').notEmpty().withMessage('id role tidak boleh kosong')
             ]
             break;
         }

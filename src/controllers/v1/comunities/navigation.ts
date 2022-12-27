@@ -17,11 +17,17 @@ export const addNavigation = asyncHandler(async (req: any, res: Response, next: 
     const { slug } = req.params;
 
     const {
-        group_navigation_title,
-        group_navigation_type,
-        group_navigation_url,
-        group_navigation_icon,
+        title,
+        type,
+        url,
+        icon,
     } = req.body;
+
+    const 
+        group_navigation_title = title,
+        group_navigation_type = type,
+        group_navigation_url = url,
+        group_navigation_icon = icon;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -197,7 +203,7 @@ export const updateOrderNavigation = asyncHandler(async (req: any, res: Response
                         id: item.id
                     },
                     data: {
-                        order: item.group_navigation_order
+                        order: item.order
                     }
                 })
             }))
@@ -223,20 +229,20 @@ export const validation = (method: string) => {
         case 'addNavigation': {
             return [
                 body(
-                    "group_navigation_title",
+                    "title",
                     "Group navigation title is required"
                 ).exists(),
-                body("group_navigation_type", "Group navigation type is required")
+                body("type", "Group navigation type is required")
                     .exists()
                     .isIn(["url", "post", "list_post", "list_member", "leaderboard"])
                     .withMessage(
                         "Group navigation type must be url, post, list_post, list_member, leaderboard"
                     ),
-                body("group_navigation_url", "Group navigation url is required")
+                body("url", "Group navigation url is required")
                     .exists()
                     // .isURL().withMessage('Group navigation url must be url'),
                     .custom(async (value, { req }) => {
-                        if (req.body.group_navigation_type == "url") {
+                        if (req.body.type == "url") {
                             let regexURL =
                                 /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/;
                             if (!value.match(regexURL)) {
@@ -245,7 +251,7 @@ export const validation = (method: string) => {
                         }
                         return true;
                     }),
-                body("group_navigation_icon", "Group navigation icon is required")
+                body("icon", "Group navigation icon is required")
                     // jika ada, maka validasi isURL()
                     .optional({ checkFalsy: true })
                     .isURL()
