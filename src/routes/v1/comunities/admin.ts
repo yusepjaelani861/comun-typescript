@@ -11,7 +11,7 @@ import {
 const router = express.Router();
 
 router
-    .route('/edit/:slug')
+    .route('/edit/:slug_group')
     .post(protect, validation('editComunity'), editComunity);
 
 router

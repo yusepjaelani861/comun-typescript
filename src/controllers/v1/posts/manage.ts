@@ -7,8 +7,9 @@ import { pagination } from "../../../libraries/helper";
 import moment from "moment";
 import { stringify, parse } from "himalaya";
 import Randomstring from "randomstring";
-import { joinedGroup } from "../comunities/helper";
+import { joinedGroup, myPermissionGroup } from "../comunities/helper";
 import { convertResPost } from "./helper";
+import { equal } from "assert";
 
 
 const prisma = new PrismaClient();
@@ -115,7 +116,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                     return next(new sendError('Anda tidak memiliki akses', [], 'PROCESS_ERROR', 400));
                 }
                 const isMember = joinedGroup(group, req.user.id);
-    
+
                 if (!isMember) {
                     return next(new sendError('Anda belum bergabung', [], 'PROCESS_ERROR', 400));
                 }
@@ -318,14 +319,22 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
 
     let paragraph: any, body_to_json: any, post_slug: any, random_slug: string, post: any, url: string;
 
-    let {
-        post_title,
-        post_group_id,
-        post_body,
-        post_content_type,
-        post_attachments,
-        post_question_id,
+    const {
+        title,
+        group_id,
+        body,
+        content_type,
+        attachments,
+        question_post_id,
     } = req.body;
+
+    let
+        post_title = title,
+        post_group_id = group_id,
+        post_body = body,
+        post_content_type = content_type,
+        post_attachments = attachments,
+        post_question_id = question_post_id;
 
     const group = await prisma.group.findUnique({
         where: {
@@ -515,11 +524,16 @@ export const updatePost = asyncHandler(async (req: any, res: Response, next: Nex
         return next(new sendError('Post voting tidak bisa diubah', [], 'PROCESS_ERROR', 400));
     }
 
-    let {
-        post_title,
-        post_body,
-        post_attachments,
+    const {
+        title,
+        body,
+        attachments,
     } = req.body;
+
+    let
+        post_title = title,
+        post_body = body,
+        post_attachments = attachments;
 
     let paragraph: any, body_to_json: any, search_img: any;
 
@@ -601,6 +615,45 @@ export const deletePost = asyncHandler(async (req: any, res: Response, next: Nex
     })
 
     if (!post) {
+        if (req.user) {
+            const post: any = await prisma.post.findFirst({
+                where: {
+                    slug: slug,
+                }
+            })
+
+            if (!post) {
+                return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
+            }
+
+            const group = await prisma.group.findFirst({
+                where: {
+                    id: post.group_id,
+                },
+            })
+
+            if (!group) {
+                return next(new sendError('Group tidak ditemukan', [], 'NOT_FOUND', 404));
+            }
+
+            const permission = myPermissionGroup(group, req.user?.id, 'hapus_konten');
+
+            if (!permission) {
+                return next(new sendError('Anda tidak memiliki izin untuk menghapus post', [], 'NOT_FOUND', 404));
+            }
+
+            try {
+                await prisma.post.delete({
+                    where: {
+                        id: post.id
+                    }
+                })
+
+                return res.status(200).json(new sendResponse({}, 'Berhasil menghapus postingan', {}, 200));
+            } catch (error) {
+                return next(new sendError('Gagal menghapus post', [], 'PROCESS_ERROR', 400));
+            }
+        }
         return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
     }
 
@@ -621,13 +674,13 @@ export const validation = (method: string) => {
     switch (method) {
         case 'createPost': {
             return [
-                body("post_body").custom(async (value, { req }) => {
-                    if (req.body.post_content_type == "shortvideo" && !value) {
+                body("body").custom(async (value, { req }) => {
+                    if (req.body.content_type == "shortvideo" && !value) {
                         return true;
                     }
 
                     if (value) {
-                        let body_to_json = parse(req.body.post_body);
+                        let body_to_json = parse(req.body.body);
 
                         let search_first_paragraph = body_to_json.find(
                             (res) => res.type == "element" && res.tagName == "p"
@@ -640,15 +693,15 @@ export const validation = (method: string) => {
                         return true;
                     }
                 }),
-                body("post_group_id").notEmpty().withMessage("Group id is required"),
-                body("post_content_type")
+                body("group_id").notEmpty().withMessage("Group id is required"),
+                body("content_type")
                     .notEmpty()
                     .withMessage("Post type content is required")
                     .isIn(["post", "question", "video", "shortvideo", "answer_question"])
                     .withMessage("Please insert post type"),
-                body("post_title")
+                body("title")
                     .custom(async (value, { req }) => {
-                        if (req.body.post_content_type != "answer_question") {
+                        if (req.body.content_type != "answer_question") {
                             if (!value) {
                                 throw new Error("Title is required");
                             }
@@ -658,10 +711,10 @@ export const validation = (method: string) => {
                     })
                     .isLength({ max: 255 })
                     .withMessage("Post title is too long"),
-                body("post_attachments").custom(async (value, { req }) => {
+                body("attachments").custom(async (value, { req }) => {
                     if (
-                        req.body.post_content_type == "video" ||
-                        req.body.post_content_type == "shortvideo"
+                        req.body.content_type == "video" ||
+                        req.body.content_type == "shortvideo"
                     ) {
                         if (!value) {
                             throw new Error("Post attachments is required");
@@ -669,7 +722,7 @@ export const validation = (method: string) => {
                     }
                     return true;
                 }),
-                body("post_question_post_id").custom(async (value, { req }) => {
+                body("question_post_id").custom(async (value, { req }) => {
                     if (req.body.post_content_type == "answer_question") {
                         if (!value) {
                             throw new Error("Post question id is required");
@@ -684,13 +737,13 @@ export const validation = (method: string) => {
 
         case 'updatePost': {
             return [
-                body("post_body").custom(async (value, { req }) => {
-                    if (req.body.post_content_type == "shortvideo" && !value) {
+                body("body").custom(async (value, { req }) => {
+                    if (req.body.content_type == "shortvideo" && !value) {
                         return true;
                     }
 
                     if (value) {
-                        let body_to_json = parse(req.body.post_body);
+                        let body_to_json = parse(req.body.body);
 
                         let search_first_paragraph = body_to_json.find(
                             (res) => res.type == "element" && res.tagName == "p"
@@ -704,8 +757,8 @@ export const validation = (method: string) => {
                     }
                 }),
 
-                body("post_title").optional().isLength({ max: 255 }).withMessage("Post title is too long"),
-                body("post_attachments").optional(),
+                body("title").optional().isLength({ max: 255 }).withMessage("Post title is too long"),
+                body("attachments").optional(),
 
             ]
             break;

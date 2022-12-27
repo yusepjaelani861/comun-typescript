@@ -56,7 +56,14 @@ export const updateMyConfig = asyncHandler(async (req: any, res: Response, next:
 
     const { id } = req.user;
 
-    const { config_label, user_config_value } = req.body;
+    const {
+        label,
+        value,
+    } = req.body;
+
+    const 
+        config_label = label,
+        user_config_value = value;
 
     const config = await prisma.config.findFirst({
         where: {
@@ -108,12 +115,12 @@ export const updateMyConfig = asyncHandler(async (req: any, res: Response, next:
     return res.status(200).json(new sendResponse(updated_user_config, 'User config updated', {}, 200));
 })
 
-export const validation = (method : string) => {
+export const validation = (method: string) => {
     switch (method) {
         case 'updateMyConfig': {
             return [
-                body('config_label').notEmpty().withMessage('Config label is required'),
-                body('user_config_value').notEmpty().withMessage('User config value is required'),
+                body('label').notEmpty().withMessage('Config label is required'),
+                body('value').notEmpty().withMessage('User config value is required'),
             ]
         }
 

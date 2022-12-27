@@ -19,9 +19,11 @@ export const upvotesDownvotes = asyncHandler(async (req: any, res: Response, nex
     }
 
     const {
-        post_id,
-        post_action,
+        id,
+        action,
     } = req.body;
+
+    const post_action = action, post_id = id;
 
     const post = await prisma.post.findFirst({
         where: {
@@ -107,13 +109,24 @@ export const upvotesDownvotes = asyncHandler(async (req: any, res: Response, nex
         }
     }
 
-    if (post_action === 'upvotes') {
+    if (message === 'Upvotes ditambahkan') {
         await prisma.notification.create({
             data: {
                 user_id: post.user_id,
                 from_user_id: req.user?.id,
                 type: 'post_upvote',
                 body: `<strong>${req.user?.name}</strong> mendukung postingan anda <strong>${post.title}</strong>`,
+                url: `/${post.group?.slug}/${post.slug}`
+            }
+        })
+    }
+
+    if (message === 'Downvotes ditambahkan' || message === 'Upvotes dihapus') {
+        await prisma.notification.deleteMany({
+            where: {
+                user_id: post.user_id,
+                from_user_id: req.user?.id,
+                type: 'post_upvote',
                 url: `/${post.group?.slug}/${post.slug}`
             }
         })
@@ -196,8 +209,8 @@ export const validation = (method: string) => {
     switch (method) {
         case 'upvotesDownvotes': {
             return [
-                body('post_id', 'Post id tidak boleh kosong').notEmpty(),
-                body('post_action', 'Post action tidak boleh kosong').notEmpty().isIn(['upvotes', 'downvotes']).withMessage('Post action tidak valid'),
+                body('id', 'Post id tidak boleh kosong').notEmpty(),
+                body('action', 'Post action tidak boleh kosong').notEmpty().isIn(['upvotes', 'downvotes']).withMessage('Post action tidak valid'),
             ]
             break;
         }

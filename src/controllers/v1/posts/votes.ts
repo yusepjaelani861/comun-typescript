@@ -20,11 +20,15 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
     }
 
     const {
-        post_title,
-        post_body,
-        post_group_id,
-        post_vote_options
+        title,
+        body,
+        group_id,
+        post_vote_options,
     } = req.body;
+    const 
+        post_title = title,
+        post_body = body,
+        post_group_id = group_id;
 
     let body_to_json: any, slug: string;
 
@@ -146,9 +150,9 @@ export const validation = (method: string) => {
     switch (method) {
         case 'createVotePost': {
             return [
-                body('post_title', 'Judul harus diisi').notEmpty(),
-                body('post_body').optional(),
-                body('post_group_id', 'Group harus diisi').notEmpty(),
+                body('title', 'Judul harus diisi').notEmpty(),
+                body('body').optional(),
+                body('group_id', 'Group harus diisi').notEmpty(),
                 body("post_vote_options")
                     .notEmpty()
                     .withMessage("Post vote options is required")

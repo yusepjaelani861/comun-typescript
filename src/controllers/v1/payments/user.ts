@@ -133,10 +133,14 @@ export const createPayment = asyncHandler(async (req: any, res: Response, next: 
 
     const { slug } = req.params;
     const {
-        method_payment_id,
-        group_payment_number,
-        group_payment_name,
+        id,
+        number,
+        name
     } = req.body;
+    const 
+        method_payment_id = id,
+        group_payment_number = number,
+        group_payment_name = name;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -220,9 +224,9 @@ export const validation = (method: string) => {
     switch (method) {
         case 'createPayment': {
             return [
-                body('method_payment_id').exists().withMessage('Method payment id is required'),
-                body('group_payment_number').exists().withMessage('Account number is required'),
-                body('group_payment_name').optional(),
+                body('id').exists().withMessage('Method payment id is required'),
+                body('number').exists().withMessage('Account number is required'),
+                body('name').optional(),
             ]
         }
 

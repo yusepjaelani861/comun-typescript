@@ -89,9 +89,12 @@ export const createTag = asyncHandler(async (req: any, res: Response, next: Next
     }
 
     const {
-        tag_name,
-        post_id,
+        name,
+        post_id
     } = req.body;
+
+    const 
+        tag_name = name;
 
     const post = await prisma.post.findFirst({
         where: {
@@ -273,7 +276,7 @@ export const validation = (method: string) => {
     switch (method) {
         case 'createTag': {
             return [
-                body('tag_name').notEmpty().withMessage('Nama tag tidak boleh kosong'),
+                body('name').notEmpty().withMessage('Nama tag tidak boleh kosong'),
                 body('post_id').notEmpty().withMessage('Post ID tidak boleh kosong'),
             ]
             break;

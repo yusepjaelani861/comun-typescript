@@ -21,8 +21,10 @@ export const requestPayout = asyncHandler(async (req: any, res: Response, next: 
 
     const {
         amount,
-        group_payment_id,
+        id,
     } = req.body;
+
+    const group_payment_id = id;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -184,7 +186,7 @@ export const validation = (method: string) => {
         case 'requestPayout': {
             return [
                 body('amount').notEmpty().withMessage('Jumlah tidak boleh kosong'),
-                body('group_payment_id').notEmpty().withMessage('Metode pembayaran tidak boleh kosong'),
+                body('id').notEmpty().withMessage('Id metode pembayaran tidak boleh kosong'),
             ]
             break;
         }

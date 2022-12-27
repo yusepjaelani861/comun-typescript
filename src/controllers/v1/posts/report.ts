@@ -21,9 +21,13 @@ export const reportPost = asyncHandler(async (req: any, res: Response, next: Nex
 
     const {
         post_id,
-        report_reason,
-        report_body
+        reason,
+        body,
     } = req.body;
+
+    const 
+        report_reason = reason,
+        report_body = body;
 
     let where: any = {};
 
@@ -196,8 +200,10 @@ export const actionReport = asyncHandler(async (req: any, res: Response, next: N
 
     const {
         post_id,
-        report_action
+        action
     } = req.body;
+
+    const report_action = action;
 
     const post = await prisma.post.findFirst({
         where: {
@@ -270,7 +276,7 @@ export const validation = (method: string) => {
         case 'reportPost': {
             return [
                 body("post_id", "Post id is required").exists(),
-                body("report_reason", "Report reason is required")
+                body("reason", "Reason report is required")
                     .exists()
                     .isIn([
                         "nudity",
@@ -282,7 +288,7 @@ export const validation = (method: string) => {
                         "terrorism",
                         "other",
                     ]),
-                body("report_body", "Report body is required").exists(),
+                body("body", "Body report is required").exists(),
             ]
             break;
         }
@@ -290,7 +296,7 @@ export const validation = (method: string) => {
         case 'actionReport': {
             return [
                 body("post_id", "Post id is required").exists(),
-                body("report_action", "Report Action is required")
+                body("action", "Action report is required")
                     .exists()
                     .isIn(["delete", "ignore"]),
             ]

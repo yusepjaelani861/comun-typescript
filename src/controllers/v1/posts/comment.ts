@@ -176,15 +176,24 @@ export const createComment = asyncHandler(async (req: any, res: Response, next: 
     }
 
     const {
-        comment_attachment,
-        comment_body,
-        comment_post_id,
-        comment_par_comment_id,
+        attachment,
+        body,
+        post_id,
+        par_comment_id,
     } = req.body;
+
+    const 
+        comment_attachment = attachment,
+        comment_body = body,
+        comment_post_id = post_id,
+        comment_par_comment_id = par_comment_id ? par_comment_id : null;
 
     const post = await prisma.post.findFirst({
         where: {
             id: comment_post_id
+        },
+        include: {
+            group: true,
         }
     })
 
@@ -236,6 +245,16 @@ export const createComment = asyncHandler(async (req: any, res: Response, next: 
     delete comment.post_comment_upvotes;
     delete comment.post_comment_downvotes;
 
+    await prisma.notification.create({
+        data: {
+            user_id: post.user_id,
+            from_user_id: req.user?.id,
+            body: `<strong>${req.user?.name}</strong> mengomentari postingan anda <strong>${post.title}</strong>`,
+            type: 'comment',
+            url: `/${post.group.slug}/${post.slug}`
+        }
+    })
+
     return res.json(new sendResponse(comment, 'Berhasil membuat komentar', [], 200));
 })
 
@@ -246,13 +265,23 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
     }
 
     const {
-        comment_id,
-        comment_action,
+        id,
+        action
     } = req.body;
+    const 
+        comment_id = id,
+        comment_action = action;
 
     const comment = await prisma.postComment.findFirst({
         where: {
             id: comment_id
+        },
+        include: {
+            post: {
+                include: {
+                    group: true
+                }
+            }
         }
     })
 
@@ -360,6 +389,29 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
         }
     }
 
+    if (message == 'Berhasil melakukan upvote') {
+        await prisma.notification.create({
+            data: {
+                user_id: comment.user_id,
+                from_user_id: req.user?.id,
+                body: `<strong>${req.user?.name}</strong> mendukung komentar anda <strong>${comment.body}</strong>`,
+                type: 'comment_upvote',
+                url: `/${comment.post.group.slug}/${comment.post.slug}`
+            }
+        })
+    }
+
+    if (message = 'Berhasil menghapus upvote' || message == 'Berhasil melakukan downvote') {
+        await prisma.notification.deleteMany({
+            where: {
+                user_id: comment.user_id,
+                from_user_id: req.user?.id,
+                type: 'comment_upvote',
+                url: `/${comment.post.group.slug}/${comment.post.slug}`
+            }
+        })
+    }
+
     return res.json(new sendResponse([], message, [], 200));
 })
 
@@ -367,8 +419,10 @@ export const validation = (method: string) => {
     switch (method) {
         case 'createComment': {
             return [
-                body("comment_body").notEmpty().withMessage("Comment body is required"),
-                body("comment_post_id").notEmpty().withMessage("Comment post id is required"),
+                body("attachment").optional(),
+                body("body").notEmpty().withMessage("Comment body is required"),
+                body("post_id").notEmpty().withMessage("Comment post id is required"),
+                body("par_comment_id").optional(),
             ];
 
             break;
@@ -376,8 +430,8 @@ export const validation = (method: string) => {
 
         case 'commentUpvoteDownvote': {
             return [
-                body("comment_id").notEmpty().withMessage("Comment id is required"),
-                body("comment_action").notEmpty().withMessage("Comment action is required").isIn(['upvotes', 'downvotes']).withMessage("Comment action is invalid"),
+                body("id").notEmpty().withMessage("id comment is required"),
+                body("action").notEmpty().withMessage("action comment is required").isIn(['upvotes', 'downvotes']).withMessage("Comment action is invalid"),
             ]
             break;
         }

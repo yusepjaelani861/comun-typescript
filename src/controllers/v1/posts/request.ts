@@ -136,9 +136,12 @@ export const actionRequestPost = asyncHandler(async (req: any, res: Response, ne
     const { slug } = req.params;
 
     const {
-        post_id,
-        post_status
+        id,
+        status
     } = req.body;
+    const 
+        post_id = id,
+        post_status = status;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -256,12 +259,12 @@ export const validation = (method: string) => {
     switch (method) {
         case 'actionRequestPost': {
             return [
-                body("post_id")
+                body("id")
                     .notEmpty()
                     .withMessage("Post id is required")
                     .isInt()
                     .withMessage("Post id must be integer"),
-                body("post_status")
+                body("status")
                     .notEmpty()
                     .withMessage("Post status is required")
                     .isIn(["published", "rejected"])
