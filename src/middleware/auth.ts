@@ -22,7 +22,7 @@ export const protect = asyncHandler(async (req: any, res: Response, next: NextFu
 
     const decoded: any = jwt.verify(token, jwt_secret);
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         where: {
             id: decoded.id
         },
@@ -60,7 +60,7 @@ export const withtoken = asyncHandler(async (req: any, res: Response, next: Next
     if (token) {
         const decoded: any = jwt.verify(token, jwt_secret);
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.user.findFirst({
             where: {
                 id: decoded.id
             },
