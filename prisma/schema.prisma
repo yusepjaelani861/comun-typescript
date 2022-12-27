@@ -93,7 +93,7 @@ model Post {
   group_id Int
   title String
   slug String
-  body Json
+  body Json?
   attachments String?
   seo_title String?
   seo_description String?
@@ -383,6 +383,7 @@ model MethodPayment {
   name String
   code String
   icon String
+  status Boolean @default(true)
   type MethodPaymentType
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -438,8 +439,8 @@ model GroupAnalytic {
   height_screen Int?
   language_code String?
   client_type_data Json?
-  spend_time BigInt?
-  earning BigInt?
+  spend_time Int?
+  earning Int?
   url Json?
   unique Boolean? @default(false)
   created_at DateTime @default(now())
