@@ -213,7 +213,7 @@ export const listComunity = asyncHandler(async (req: any, res: Response, next: N
                 group_members: {
                     every: {
                         status: 'joined',
-                        user_id: req.user_id,
+                        user_id: req.user.id,
                     }
                 }
             },
@@ -236,7 +236,7 @@ export const listComunity = asyncHandler(async (req: any, res: Response, next: N
                 group_members: {
                     every: {
                         status: 'joined',
-                        user_id: req.user_id,
+                        user_id: req.user.id,
                     }
                 }
             }
