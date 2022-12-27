@@ -104,7 +104,11 @@ export const requestPost = asyncHandler(async (req: any, res: Response, next: Ne
             post_downvotes: true,
             post_vote_options: true,
         },
-        orderBy: orderBy,
+        orderBy: orderBy.length > 0 ? orderBy : [
+            {
+                created_at: order
+            }
+        ],
         skip: (page - 1) * limit,
         take: limit
     })

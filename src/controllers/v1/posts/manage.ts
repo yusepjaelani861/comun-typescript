@@ -26,12 +26,12 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
     if (Object.keys(req.query).length > 0) {
         Object.keys(req.query).forEach((filter, index) => {
             let key_and_op = filter.split('.');
-            
+
             if (key_and_op.length > 1) {
                 let key = key_and_op[0];
                 let op = key_and_op[1];
                 let value = req.query[filter];
-                
+
                 if (key == 'sort') {
                     orderBy.push({
                         [op]: value
@@ -39,22 +39,6 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                 }
             }
         })
-    }
-
-    const group = await prisma.group.findFirst({
-        where: {
-            slug: slug
-        }
-    })
-
-    if (!group) {
-        return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
-    }
-
-    const permission = joinedGroup(group, req.user.id);
-
-    if (!permission) {
-        return next(new sendError('Anda tidak memiliki akses', [], 'PROCESS_ERROR', 400));
     }
 
     where = {
@@ -89,7 +73,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                     group: {
                         OR: [
                             {
-                                privacy: 'published'
+                                privacy: 'public'
                             },
                             {
                                 privacy: 'restricted'
@@ -103,7 +87,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                     group: {
                         OR: [
                             {
-                                privacy: 'published'
+                                privacy: 'public'
                             },
                             {
                                 privacy: 'restricted'
@@ -126,10 +110,15 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                 return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
             }
 
-            const isMember = joinedGroup(group, req.user.id);
-
-            if (!isMember) {
-                return next(new sendError('Anda belum bergabung', [], 'PROCESS_ERROR', 400));
+            if (group.privacy !== 'public') {
+                if (!req.user) {
+                    return next(new sendError('Anda tidak memiliki akses', [], 'PROCESS_ERROR', 400));
+                }
+                const isMember = joinedGroup(group, req.user.id);
+    
+                if (!isMember) {
+                    return next(new sendError('Anda belum bergabung', [], 'PROCESS_ERROR', 400));
+                }
             }
 
             where = {
@@ -243,7 +232,11 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
     if (type !== 'detail') {
         post = await prisma.post.findMany({
             where: where,
-            orderBy: orderBy,
+            orderBy: orderBy.length > 0 ? orderBy : [
+                {
+                    created_at: order
+                }
+            ],
             include: {
                 user: {
                     select: {
@@ -478,9 +471,9 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
                 },
             })
 
-            url = '/' + post.group.slug + '/' + post_before.slug + '/' + post.slug;
+            url = '/' + posts.group.slug + '/' + post_before.slug + '/' + posts.slug;
         } else {
-            url = '/' + post.group.slug + '/' + post.slug;
+            url = '/' + posts.group.slug + '/' + posts.slug;
         }
 
         posts.url = url;
@@ -494,8 +487,8 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
         posts.is_upvote = false;
 
         return res.status(200).json(new sendResponse(posts, 'Berhasil membuat postingan', {}, 200));
-    } catch (error) {
-        return next(new sendError('Gagal membuat post', [], 'PROCESS_ERROR', 400));
+    } catch (error: any) {
+        return next(new sendError('Gagal membuat post', error, 'PROCESS_ERROR', 400));
     }
 })
 
@@ -550,7 +543,7 @@ export const updatePost = asyncHandler(async (req: any, res: Response, next: Nex
                 body: post_body,
                 attachments: post_attachments,
                 seo_title: post_title,
-                seo_description: paragraph[0].children[0].content,
+                seo_description: post_body ? post_body.substring(0, 160) : post.seo_description,
             }
         })
 

@@ -78,7 +78,11 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
                 post_downvotes: true,
                 post_vote_options: true,
             },
-            orderBy: orderBy,
+            orderBy: orderBy.length > 0 ? orderBy : [
+                {
+                    created_at: order
+                }
+            ],
             skip: (page - 1) * limit,
             take: limit
         })
@@ -112,7 +116,11 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
             post_comment_upvotes: true,
             post_comment_downvotes: true,
         },
-        orderBy: orderBy,
+        orderBy: orderBy.length > 0 ? orderBy : [
+            {
+                created_at: order
+            }
+        ],
         skip: (page - 1) * limit,
         take: limit
     })
@@ -123,7 +131,7 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
         }
     })
 
-    await Promise.all(comments.map(async (item) => {
+    await Promise.all(comments.map(async (item: any) => {
         const replies = await prisma.postComment.findMany({
             where: {
                 par_comment_id: item.id
@@ -148,7 +156,7 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
         item.downvote_count = item.post_comment_downvotes.length;
         item.is_upvote = false;
         item.is_downvote = false;
-        if (req.user.id) {
+        if (req.user) {
             item.is_upvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id);
             item.is_downvote = item.post_comment_downvotes.some((item: any) => item.user_id === req.user.id);
         }
@@ -360,8 +368,17 @@ export const validation = (method: string) => {
         case 'createComment': {
             return [
                 body("comment_body").notEmpty().withMessage("Comment body is required"),
+                body("comment_post_id").notEmpty().withMessage("Comment post id is required"),
             ];
 
+            break;
+        }
+
+        case 'commentUpvoteDownvote': {
+            return [
+                body("comment_id").notEmpty().withMessage("Comment id is required"),
+                body("comment_action").notEmpty().withMessage("Comment action is required").isIn(['upvotes', 'downvotes']).withMessage("Comment action is invalid"),
+            ]
             break;
         }
 

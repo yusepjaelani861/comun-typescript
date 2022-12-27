@@ -38,14 +38,14 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
         return next(new sendError('Group tidak ditemukan', [], 'NOT_FOUND', 404));
     }
 
-    const joined = await joinedGroup(req.user?.id, group.id);
+    const joined = await joinedGroup(group, req.user?.id);
 
     if (!joined) {
         return next(new sendError('Anda belum bergabung dengan group', [], 'NOT_FOUND', 404));
     }
 
     if (post_body) {
-        body_to_json = parse(post_body);
+        body_to_json = stringify(post_body);
     }
 
     slug = post_title.toLowerCase().replace(/[^\w ]/g, "").replace(/\s+/g, "-");
@@ -62,7 +62,7 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
     const post = await prisma.post.create({
         data: {
             title: post_title,
-            body: body_to_json,
+            body: post_body ? body_to_json : [],
             slug: slug,
             group_id: post_group_id,
             user_id: req.user?.id,
@@ -73,16 +73,19 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
         }
     })
 
+    let data: Array<any> = [];
     await Promise.all(post_vote_options.map(async (option: any) => {
-        await prisma.postVoteOption.create({
-            data: {
-                post_id: post.id,
-                name: option.name,
-                image: option.image,
-                user_id: req.user?.id,
-            }
+        data.push({
+            post_id: post.id,
+            name: option.name,
+            image: option.image,
+            user_id: req.user?.id,
         })
     }))
+
+    await prisma.postVoteOption.createMany({
+        data: data
+    })
 
     return res.status(200).json(new sendResponse([], 'Berhasil membuat post', [], 200));
 })
@@ -160,7 +163,7 @@ export const validation = (method: string) => {
                                 throw new Error("Post vote mins has 2 option");
                             }
 
-                            req.body.post_vote_options.forEach((res) => {
+                            req.body.post_vote_options.forEach((res: any) => {
                                 if (
                                     !(
                                         Object.keys(res).includes("name") &&
@@ -186,7 +189,7 @@ export const validation = (method: string) => {
             return [
                 body('vote_option_id', 'Pilihan harus diisi').notEmpty(),
             ]
-            
+
             break;
         }
 

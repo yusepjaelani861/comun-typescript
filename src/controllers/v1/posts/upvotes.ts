@@ -174,7 +174,11 @@ export const upvotesList = asyncHandler(async (req: any, res: Response, next: Ne
                 }
             }
         },
-        orderBy: orderBy,
+        orderBy: orderBy.length > 0 ? orderBy : [
+            {
+                created_at: order
+            }
+        ],
         take: limit,
         skip: (page - 1) * limit,
     })
