@@ -92,12 +92,13 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
                 OR: [
                     {
                         name: {
-                            contains: search
+                            contains: search.toLowerCase(),
+                            mode: 'insensitive'
                         }
                     },
                     {
                         slug: {
-                            contains: search
+                            contains: search.toLowerCase()
                         }
                     }
                 ]
@@ -137,8 +138,8 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
         group.is_status = my_member ? my_member.status : 'not_member';
         group.is_member = await joinedGroup(group, req.user?.id) ?? false;
         group.is_owner = group.group_members.find((member: any) => member.user_id === req.user?.id && member.group_role.slug === 'owner') ? true : false;
-        group.group_member_count = group.group_members.length;
-        group.post_count = group.group_posts.length;
+        group.total_member = group.group_members.length;
+        group.total_post = group.group_posts.length;
         delete group.group_members;
         delete group.group_posts;
         delete group.group_roles;
