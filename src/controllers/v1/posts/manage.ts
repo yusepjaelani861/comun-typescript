@@ -199,6 +199,10 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                 return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
             }
 
+            if (post.content_type !== 'answer_question') {
+                return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
+            }
+
             const group = await prisma.group.findFirst({
                 where: {
                     id: post.group_id
@@ -230,7 +234,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
     }
 
     let post: any;
-    if (type !== 'detail') {
+    if (type !== 'detail' || type !== 'answer') {
         post = await prisma.post.findMany({
             where: where,
             orderBy: orderBy.length > 0 ? orderBy : [
@@ -395,14 +399,13 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
     }
 
     post_slug = random_slug;
-
     try {
         await prisma.$transaction(async (prisma) => {
             post = await prisma.post.create({
                 data: {
                     title: post_title,
                     slug: post_slug,
-                    body: post_body,
+                    body: post_body ? JSON.stringify(body_to_json) : [],
                     content_type: post_content_type,
                     attachments: post_attachments,
                     group_id: post_group_id,
@@ -485,15 +488,19 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
             url = '/' + posts.group.slug + '/' + posts.slug;
         }
 
-        posts.url = url;
-        posts.created_at_formatted = moment(posts.created_at).fromNow();
-        posts.updated_at_formatted = moment(posts.updated_at).fromNow();
-        posts.post_comments_count = posts.post_comments.length;
-        posts.post_upvotes_count = posts.post_upvotes.length;
-        posts.post_downvotes_count = posts.post_downvotes.length;
-        posts.post_vote_options_count = posts.post_vote_options.length;
-        posts.is_downvote = false;
-        posts.is_upvote = false;
+        await convertResPost(posts, req.user?.id);
+
+        post.url = url;
+
+        // posts.url = url;
+        // posts.created_at_formatted = moment(posts.created_at).fromNow();
+        // posts.updated_at_formatted = moment(posts.updated_at).fromNow();
+        // posts.post_comments_count = posts.post_comments.length;
+        // posts.post_upvotes_count = posts.post_upvotes.length;
+        // posts.post_downvotes_count = posts.post_downvotes.length;
+        // posts.post_vote_options_count = posts.post_vote_options.length;
+        // posts.is_downvote = false;
+        // posts.is_upvote = false;
 
         return res.status(200).json(new sendResponse(posts, 'Berhasil membuat postingan', {}, 200));
     } catch (error: any) {

@@ -29,6 +29,7 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
 
     post.attachments_data_aspect_ratio = null
     post.body_formatted = ""
+    post.body = JSON.parse(post.body)
     if (post.body && post.body.length > 0) {
         const search_all_tag_p = post.body.filter((item: any) => item.tagName === 'p');
         const search_figure = post.body.filter((item: any) => item.tagName === 'figure');
