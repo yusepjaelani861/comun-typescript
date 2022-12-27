@@ -224,7 +224,7 @@ export const deleteFormulir = asyncHandler(async (req: any, res: Response, next:
     } catch (error) {
         return next(new sendError('Gagal menghapus formulir', [], 'PROCESS_ERROR', 400));
     }
-})
+}) 
 
 export const validation = (method: string) => {
     switch (method) {
