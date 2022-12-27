@@ -19,8 +19,10 @@ app.use(fileUpload());
 app.use('/public/images/avatar', express.static('src/public/images/avatar'));
 
 app.use(cors({
-    origin: '*',
-    credentials: true,
+    origin: function (origin, callback) {
+        callback(null, true)
+    },
+    credentials: true
 }));
 
 import authentication from './routes/v1/auth/authentication';
@@ -49,13 +51,13 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use(errorHandler);
 const server = http.createServer(app);
-// app.get('*', (req: Request, res: Response) => {
-//     res.status(404).json(new sendError('Not Found', [], 'NOT_FOUND', 404));
-// })
+app.get('*', (req: Request, res: Response) => {
+    res.status(404).json(new sendError('Not Found', [], 'NOT_FOUND', 404));
+})
 
-// app.post('*', (req: Request, res: Response) => {
-//     res.status(404).json(new sendError('Not Found', [], 'NOT_FOUND', 404));
-// })
+app.post('*', (req: Request, res: Response) => {
+    res.status(404).json(new sendError('Not Found', [], 'NOT_FOUND', 404));
+})
 
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
