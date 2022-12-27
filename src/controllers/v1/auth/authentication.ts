@@ -21,18 +21,31 @@ export const register_email = asyncHandler(async (req: Request, res: Response, n
     const check = await prisma.user.findFirst({
         where: {
             email: email
+        },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+            avatar: true,
+            password: true,
         }
     })
 
-    if (check) {
-        return next(new sendError('Email sudah terdaftar!', [], 'VALIDATION_ERROR', 400));
+    if (check && check.password !== null) {
+        return next(new sendError('Email sudah terdaftar', [], 'PROCESS_ERROR', 400));
     }
 
-    const user = await prisma.user.create({
-        data: {
-            email: email,
-        }
-    })
+    let user;
+    if (!check) {
+        user = await prisma.user.create({
+            data: {
+                email: email,
+            }
+        })
+    } else {
+        user = check;
+    }
 
     res.status(200).json(new sendResponse(user, 'Berhasil registrasi!', {}, 200));
 })
@@ -160,7 +173,15 @@ export const verify_and_update = asyncHandler(async (req: Request, res: Response
         options.secure = true;
     }
 
-    res.setHeader("Set-Cookie", `token=${token}; path=/; Max-Age=${options.expires.toUTCString()}; HttpOnly; Secure; SameSite=Strict; Domain=${process.env.FRONTEND_AUTH_URL};`);
+    // res.setHeader("Set-Cookie", `token=${token}; path=/; Max-Age=${options.expires.toUTCString()}; HttpOnly; Secure; SameSite=Strict; Domain=${process.env.FRONTEND_AUTH_URL};`);
+    res.setHeader(
+        "Set-Cookie",
+        `token=${token}; HttpOnly; Domain=${
+          process.env.FRONTEND_AUTH_URL
+        }; SameSite=Strict; Max-Age=${
+            jwt_expired
+        }; Path=/;`
+      );
 
     res.json(new sendResponse({
         user: {
@@ -262,8 +283,8 @@ export const validation = (method: string) => {
         case 'check_username': {
             return [
                 body("username")
-                    .isLength({ min: 1 })
-                    .withMessage("Username tidak ditemukan.")
+                    .isLength({ min: 5 })
+                    .withMessage("Username minimal 5 karakter.")
             ]
             break;
         }
