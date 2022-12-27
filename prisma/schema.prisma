@@ -281,12 +281,37 @@ model Group {
   group_transactions GroupTransaction[]
   group_analytics GroupAnalytic[]
   post_reports PostReport[]
+  group_permissions GroupPermission[]
+  group_forms GroupForm[]
 }
 
 enum GroupPrivacy {
   public
   private
   restricted
+}
+
+model GroupPermission {
+  id Int @id @default(autoincrement())
+  group_id Int
+  name String
+  slug String @unique
+  description String?
+  status Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group Group @relation(fields: [group_id], references: [id])
+}
+
+model GroupForm {
+  id Int @id @default(autoincrement())
+  group_id Int
+  name String
+  description String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group Group @relation(fields: [group_id], references: [id])
+  group_form_fields GroupMemberForm[]
 }
 
 model GroupRole {
@@ -326,12 +351,24 @@ model GroupMember {
   group_role GroupRole @relation(fields: [group_role_id], references: [id])
   group Group @relation(fields: [group_id], references: [id])
   user User @relation(fields: [user_id], references: [id])
+  group_member_forms GroupMemberForm[]
 }
 
 enum GroupMemberStatus {
   joined
   pending
   banned
+}
+
+model GroupMemberForm {
+  id Int @id @default(autoincrement())
+  group_member_id Int
+  group_form_id Int
+  value String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  group_member GroupMember @relation(fields: [group_member_id], references: [id])
+  group_form GroupForm @relation(fields: [group_form_id], references: [id])
 }
 
 model GroupNavigation {
