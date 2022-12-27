@@ -262,7 +262,7 @@ export const listPostByTag = asyncHandler(async (req: any, res: Response, next: 
     })
 
     await Promise.all(posts.map(async (post: any) => {
-        convertResPost(post);
+        await convertResPost(post, req.user?.id);
     }))
 
     const total = await prisma.post.count({

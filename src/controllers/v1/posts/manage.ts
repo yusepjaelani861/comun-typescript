@@ -64,7 +64,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                     }
                 });
 
-                const group_ids = member.map((item: any) => item.group_id).join(',');
+                const group_ids = member.map((item: any) => item.group_id)
 
                 where = {
                     ...where,
@@ -266,7 +266,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
         });
 
         await Promise.all(post.map(async (posts: any) => {
-            convertResPost(posts);
+            await convertResPost(posts, req.user?.id);
         }))
 
         const total = await prisma.post.count({
@@ -305,7 +305,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
             return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
         }
 
-        convertResPost(post);
+        await convertResPost(post, req.user?.id);
 
         return res.status(200).json(new sendResponse(post, 'Berhasil mengambil postingan', {}, 200));
     }
@@ -336,7 +336,7 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
         post_attachments = attachments,
         post_question_id = question_post_id;
 
-    const group = await prisma.group.findUnique({
+    const group = await prisma.group.findFirst({
         where: {
             id: post_group_id
         }

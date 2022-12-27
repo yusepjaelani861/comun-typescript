@@ -88,7 +88,7 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
         })
 
         await Promise.all(answer.map(async (item) => {
-            convertResPost(item);
+            await convertResPost(item, req.user?.id);
         }))
 
         const total = await prisma.post.count({
@@ -390,15 +390,17 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
     }
 
     if (message == 'Berhasil melakukan upvote') {
-        await prisma.notification.create({
-            data: {
-                user_id: comment.user_id,
-                from_user_id: req.user?.id,
-                body: `<strong>${req.user?.name}</strong> mendukung komentar anda <strong>${comment.body}</strong>`,
-                type: 'comment_upvote',
-                url: `/${comment.post.group.slug}/${comment.post.slug}`
-            }
-        })
+        if (comment.user_id != req.user.id) {
+            await prisma.notification.create({
+                data: {
+                    user_id: comment.user_id,
+                    from_user_id: req.user?.id,
+                    body: `<strong>${req.user?.name}</strong> mendukung komentar anda <strong>${comment.body}</strong>`,
+                    type: 'comment_upvote',
+                    url: `/${comment.post.group.slug}/${comment.post.slug}`
+                }
+            })
+        }
     }
 
     if (message = 'Berhasil menghapus upvote' || message == 'Berhasil melakukan downvote') {

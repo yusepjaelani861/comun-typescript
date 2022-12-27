@@ -121,7 +121,7 @@ export const requestPost = asyncHandler(async (req: any, res: Response, next: Ne
     })
 
     await Promise.all(requestPost.map(async (posts: any) => {
-        convertResPost(posts);
+        await convertResPost(posts, req.user?.id);
     }))
 
     return res.status(200).json(new sendResponse(requestPost, 'Berhasil mengambil data', pagination(page, limit, total), 200));
@@ -250,7 +250,7 @@ export const viewRequestPost = asyncHandler(async (req: any, res: Response, next
         url = '/' + post.group.slug + '/' + post.slug;
     }
 
-    convertResPost(post);
+    await convertResPost(post, req.user?.id);
 
     return res.status(200).json(new sendResponse(post, 'Berhasil mengambil data', [], 200));
 })

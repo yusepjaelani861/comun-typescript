@@ -18,7 +18,7 @@ export const updatePassword = asyncHandler(async (req: any, res: Response, next:
     const { id } = req.user;
     const { old_password, new_password, new_password_confirmation } = req.body;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         where: {
             id: id
         },
@@ -57,7 +57,7 @@ export const updatePassword = asyncHandler(async (req: any, res: Response, next:
 export const sendCode = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const { id } = req.user;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         where: {
             id: id
         },
@@ -99,7 +99,7 @@ export const verifyCode = asyncHandler(async (req: any, res: Response, next: Nex
 
     const { id } = req.user;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         where: {
             id: id
         },
@@ -133,7 +133,7 @@ export const changeEmail = asyncHandler(async (req: any, res: Response, next: Ne
 
     const { id } = req.user;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         where: {
             id: id
         },

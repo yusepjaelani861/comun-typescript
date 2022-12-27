@@ -180,7 +180,7 @@ export const reports = asyncHandler(async (req: any, res: Response, next: NextFu
     })
 
     await Promise.all(reports.map(async (report: any) => {
-        convertResPost(report.post);   
+        await convertResPost(report.post, req.user?.id);   
     }))
 
     const total = await prisma.postReport.count({
