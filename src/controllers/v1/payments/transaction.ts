@@ -48,7 +48,15 @@ export const requestPayout = asyncHandler(async (req: any, res: Response, next: 
     })
 
     if (!dompet) {
-        return next(new sendError('Dompet tidak ditemukan', [], 'NOT_FOUND', 404));
+        // return next(new sendError('Dompet tidak ditemukan', [], 'NOT_FOUND', 404));
+        await prisma.groupDompet.create({
+            data: {
+                group_id: group.id,
+                balance: 0,
+            }
+        })
+
+        return next(new sendError('Saldo tidak cukup', [], 'PROCESS_ERROR', 400));
     }
 
     if (dompet.balance < amount) {
@@ -96,7 +104,7 @@ export const requestPayout = asyncHandler(async (req: any, res: Response, next: 
                     group_id: group.id,
                     amount: amount,
                     method: JSON.stringify(payment.method_payment),
-                    account: payment.method_payment.name,
+                    account: payment.number,
                     data_json: JSON.stringify(payment),
                     note: 'Sedang proses pengecekan!',
                 }
