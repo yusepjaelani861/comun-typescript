@@ -296,7 +296,7 @@ model GroupPermission {
   id Int @id @default(autoincrement())
   group_id Int
   name String
-  slug String @unique
+  slug String
   description String?
   status Boolean @default(false)
   created_at DateTime @default(now())
