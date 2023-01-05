@@ -28,6 +28,7 @@ export const pagination = (page: any, limit: number, total: number) => {
 
     return {
         total: total,
+        total_page : totalPage,
         per_page: limit,
         prev_page: prevPage,
         next_page: nextPage,

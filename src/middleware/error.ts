@@ -6,6 +6,8 @@ const errorHandler = (err: any, req: Request, res: Response, next: NextFunction)
 
     let message_error: any =
         '=====================================' + '\n' +
+        'Date: ' + new Date() + '\n' +
+        '=====================================' + '\n' +
         'Error Code: ' + err.error?.error_code + '\n' +
         'Error Message: ' + err.message + '\n' +
         'Error Data:' +

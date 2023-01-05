@@ -20,6 +20,10 @@ export const protect = asyncHandler(async (req: any, res: Response, next: NextFu
         return next(new sendError('Not authorized to access this route', [], 'UNAUTHORIZED', 401));
     }
 
+    if (token.split('.').length !== 3) {
+        return next(new sendError('Not authorized to access this route', [], 'UNAUTHORIZED', 401));
+    }
+
     const decoded: any = jwt.verify(token, jwt_secret);
 
     const user = await prisma.user.findFirst({
@@ -58,7 +62,15 @@ export const withtoken = asyncHandler(async (req: any, res: Response, next: Next
     }
 
     if (token) {
+        if (token.split('.').length !== 3) {
+            return next(new sendError('Not authorized to access this route', [], 'UNAUTHORIZED', 401));
+        }
+        
         const decoded: any = jwt.verify(token, jwt_secret);
+
+        if (!decoded) {
+            return next(new sendError('Not authorized to access this route', [], 'UNAUTHORIZED', 401));
+        }
 
         const user = await prisma.user.findFirst({
             where: {
