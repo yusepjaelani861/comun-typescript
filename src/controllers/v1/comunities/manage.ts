@@ -24,7 +24,7 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
         privacy,
     } = req.body;
 
-    const 
+    const
         group_name = name,
         group_slug = slug,
         group_tagline = tagline,
@@ -34,6 +34,16 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
         group_privacy = privacy;
 
     const { id } = req.user;
+
+    const group = await prisma.group.findFirst({
+        where: {
+            slug: group_slug
+        }
+    })
+
+    if (group) {
+        return next(new sendError('Komunitas sudah ada', [], 'PROCESS_ERROR', 400));
+    }
 
     const comunity = await prisma.group.create({
         data: {
@@ -66,12 +76,63 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
     })
 
     createRolePermission(comunity, owner);
+    createGroupPermission(comunity.id)
+
+    await prisma.groupDompet.create({
+        data: {
+            group_id: comunity.id,
+        }
+    })
 
     return res.status(200).json(new sendResponse(comunity, 'Comunity created', {}, 200));
 })
 
+const permissonGroup = [
+    {
+        name: 'Persetujuan Bergabung',
+        slug: 'persetujuan_bergabung',
+        description: 'Saat ada anggota baru bergabung harus ada persetujuan dari role tertentu',
+    },
+    {
+        name: 'Formulir saat Bergabung',
+        slug: 'formulir_saat_bergabung',
+        description: 'Mengisi form saat bergabung ke komunitas'
+    },
+    {
+        name: 'Persetujuan posting',
+        slug: 'persetujuan_posting',
+        description: 'Saat ada anggota yang memposting harus ada persetujuan dari role tertentu',
+    }
+]
+
+export const createGroupPermission = async (group_id: number) => {
+    await Promise.all(permissonGroup.map(async (permission: any) => {
+        let cek = await prisma.groupPermission.findFirst({
+            where: {
+                group_id: group_id,
+                slug: permission.slug,
+            }
+        })
+
+        if (!cek) {
+            await prisma.groupPermission.create({
+                data: {
+                    group_id: group_id,
+                    name: permission.name,
+                    slug: permission.slug,
+                    description: permission.description,
+                    status: false,
+                }
+            })
+        }
+    }))
+}
+
 export const joinComunity = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const { slug } = req.params;
+    const {
+        answer,
+    } = req.body;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -115,39 +176,93 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
         createMemberPermission(role);
     }
 
-    let message: string, status: string, data: any;
+    let message: string, status: string, data: any, member: any;
     data = {
         group_id: group.id,
         user_id: req.user.id,
         group_role_id: role.id,
     }
-    switch (group.privacy) {
-        case 'public': {
-            message = 'Berhasil bergabung dengan komunitas!';
-            status = 'joined';
-            data.status = status;
-            break;
+
+    message = 'Berhasil bergabung dengan komunitas!';
+    status = 'joined';
+    data.status = status;
+
+    const permissionGroup = await prisma.groupPermission.findMany({
+        where: {
+            group_id: group.id,
         }
-        case 'private': {
-            message = 'Permintaan bergabung telah dikirim!';
-            status = 'pending';
-            data.status = status;
-            break;
-        }
-        case 'restricted': {
-            message = 'Permintaan bergabung telah dikirim!';
-            status = 'pending';
-            data.status = status;
-            break;
-        }
-        default: {
-            return next(new sendError('Terjadi kesalahan di sisi user!', [], 'PROCESS_ERROR', 400));
-        }
+    })
+
+    const persetujuanBergabung = permissionGroup.find((item: any) => item.slug === 'persetujuan_bergabung');
+
+    if (persetujuanBergabung && persetujuanBergabung.status === true) {
+        message = 'Permintaan bergabung telah dikirim!';
+        status = 'pending';
+        data.status = status;
     }
 
-    const member = await prisma.groupMember.create({
-        data: data
-    })
+    const formulirBergabung = permissionGroup.find((item: any) => item.slug === 'formulir_saat_bergabung');
+    if (formulirBergabung && formulirBergabung.status === true) {
+        const form = await prisma.groupForm.findMany()
+        if (form.length > 0) {
+            if (!answer || answer.length < form.length) {
+                return next(new sendError('Jawaban formulir belum lengkap!', [
+                    {
+                        id: 'id',
+                        message: 'id tidak boleh kosong'
+                    },
+                    {
+                        id: 'value',
+                        message: 'value tidak boleh kosong'
+                    }
+                ], 'PROCESS_ERROR', 400));
+            }
+
+            if (!Array.isArray(answer)) {
+                return next(new sendError('Jawaban formulir harus berupa array!', [
+                    {
+                        id: 'id',
+                        message: 'id tidak boleh kosong'
+                    },
+                    {
+                        id: 'value',
+                        message: 'value tidak boleh kosong'
+                    }
+                ], 'PROCESS_ERROR', 400));
+            }
+
+            if (answer.find((item: any) => !item.id || !item.value)) {
+                return next(new sendError('Jawaban formulir tidak lengkap!', [
+                    {
+                        id: 'id',
+                        message: 'id tidak boleh kosong'
+                    },
+                    {
+                        id: 'value',
+                        message: 'value tidak boleh kosong'
+                    }
+                ], 'PROCESS_ERROR', 400));
+            }
+
+            member = await prisma.groupMember.create({
+                data: data
+            })
+
+            await Promise.all(answer.map(async (item: any) => {
+                await prisma.groupMemberForm.create({
+                    data: {
+                        group_member_id: member.id,
+                        group_form_id: item.id,
+                        value: item.value,
+                    }
+                })
+            }))
+        }
+    } else {
+        member = await prisma.groupMember.create({
+            data: data
+        })
+    }
 
     return res.status(200).json(new sendResponse(member, message, {}, 200));
 })
@@ -203,24 +318,48 @@ export const listComunity = asyncHandler(async (req: any, res: Response, next: N
     limit = parseInt(limit);
 
     try {
-        const comunity = await prisma.group.findMany({
+        const member = await prisma.groupMember.findMany({
+            where: {
+                user_id: req.user.id,
+                status: 'joined',
+            },
+            include: {
+                group: {
+                    include: {
+                        group_posts: true,
+                        group_members: true,
+                    }
+                }
+            },
             skip: (page - 1) * limit,
             take: limit,
             orderBy: {
                 id: 'desc'
-            },
-            where: {
-                group_members: {
-                    every: {
-                        status: 'joined',
-                        user_id: req.user.id,
-                    }
-                }
-            },
-            include: {
-                group_posts: true,
-                group_members: true,
             }
+        })
+        // const comunity = await prisma.group.findMany({
+        //     where: {
+        //         group_members: {
+        //             every: {
+        //                 status: 'joined',
+        //                 user_id: req.user.id,
+        //             }
+        //         }
+        //     },
+        //     skip: (page - 1) * limit,
+        //     take: limit,
+        //     orderBy: {
+        //         id: 'desc'
+        //     },
+        //     include: {
+        //         group_posts: true,
+        //         group_members: true,
+        //     }
+        // })
+
+        let comunity: any = [];
+        member.forEach((item: any) => {
+            comunity.push(item.group);
         })
 
         await Promise.all(comunity.map(async (item: any) => {
@@ -231,14 +370,10 @@ export const listComunity = asyncHandler(async (req: any, res: Response, next: N
             delete item.group_posts;
         }));
 
-        const total_comunity = await prisma.group.count({
+        const total_comunity = await prisma.groupMember.count({
             where: {
-                group_members: {
-                    every: {
-                        status: 'joined',
-                        user_id: req.user.id,
-                    }
-                }
+                status: 'joined',
+                user_id: req.user.id,
             }
         })
 
@@ -377,7 +512,7 @@ export const listAllMember = asyncHandler(async (req: any, res: Response, next: 
         if (!permission) {
             return next(new sendError('Anda tidak memiliki akses untuk melihat anggota dengan role ini!', [], 'PROCESS_ERROR', 400));
         }
-        
+
         where.group_role = {
             slug: role.toLowerCase()
         }
@@ -433,16 +568,77 @@ export const listAllMember = asyncHandler(async (req: any, res: Response, next: 
     return res.status(200).json(new sendResponse(group_member, 'List of member', pagination(page, limit, total_group_member), 200));
 })
 
+export const listAnswerFormJoin = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+    let { page = 1, limit = 10, search, order = 'desc' } = req.query;
+    const { slug } = req.params;
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const group = await prisma.group.findFirst({
+        where: {
+            slug: slug
+        }
+    })
+
+    if (!group) {
+        return next(new sendError('Komunitas tidak ditemukan!', [], 'NOT_FOUND', 404));
+    }
+
+    const permission = myPermissionGroup(group, req.user?.id, 'terima_dan_tolak_anggota')
+    if (!permission) {
+        return next(new sendError('Anda tidak memiliki akses untuk melihat daftar permintaan bergabung!', [], 'PROCESS_ERROR', 400));
+    }
+
+    const answers = await prisma.groupMemberForm.findMany({
+        where: {
+            group_member: {
+                group_id: group.id,
+            },
+        },
+        include: {
+            group_member: {
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            username: true,
+                            avatar: true,
+                        },
+                    },
+                },
+            },
+            group_form: true,
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+            id: order,
+        },
+    })
+
+    const total_answers = await prisma.groupMemberForm.count({
+        where: {
+            group_member: {
+                group_id: group.id,
+            },
+        },
+    })
+
+    return res.status(200).json(new sendResponse(answers, 'List of answer form join', pagination(page, limit, total_answers), 200));
+})
+
 export const validation = (method: string) => {
     switch (method) {
         case 'createComunity': {
             return [
                 body('name').notEmpty().withMessage('Nama komunitas tidak boleh kosong!'),
                 body('slug').notEmpty().withMessage('Slug komunitas tidak boleh kosong!'),
-                body('tagline').notEmpty().withMessage('Tagline komunitas tidak boleh kosong!'),
+                // body('tagline').notEmpty().withMessage('Tagline komunitas tidak boleh kosong!'),
                 body('avatar').optional(),
-                body('background').notEmpty().withMessage('Background komunitas tidak boleh kosong!'),
-                body('color').notEmpty().withMessage('Warna komunitas tidak boleh kosong!'),
+                body('background').optional(),
+                body('color').optional(),
                 body('privacy').notEmpty().withMessage('Tipe komunitas tidak boleh kosong!'),
             ]
             break;

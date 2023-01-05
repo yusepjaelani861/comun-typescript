@@ -70,7 +70,7 @@ export const addNavigation = asyncHandler(async (req: any, res: Response, next: 
                     group_id: group.id,
                     title: group_navigation_title,
                     type: group_navigation_type,
-                    url: group_navigation_url,
+                    url: group_navigation_url ?? 'https://ui-avatars.com/api/?name='+ group_navigation_title +'&background=0D8ABC&color=fff&size=128',
                     icon: group_navigation_icon,
                     order: 1,
                 }
@@ -167,7 +167,7 @@ export const listNavigation = asyncHandler(async (req: any, res: Response, next:
 
     })
 
-    return res.status(200).json(new sendResponse(navigation, 'Navigasi berhasil dihapus', {}, 200))
+    return res.status(200).json(new sendResponse(navigation, 'Navigasi berhasil didapatkan', {}, 200))
 })
 
 export const updateOrderNavigation = asyncHandler(async (req: any, res: Response, next: NextFunction) => {

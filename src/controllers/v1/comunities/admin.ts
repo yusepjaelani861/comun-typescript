@@ -220,7 +220,7 @@ export const editComunity = asyncHandler(async (req: any, res: Response, next: N
         return next(new sendError('Anda tidak memiliki akses', [], 'PROCESS_ERROR', 400));
     }
 
-    if (group.slug_updated_at && moment().diff(moment(group.slug_updated_at), 'days') < 7) {
+    if (group_slug !== group.slug && group.slug_updated_at !== null && moment().diff(moment(group.slug_updated_at), 'days') < 7) {
         return next(new sendError('Saat ini Anda tidak bisa mengubah slug komunitas', [], 'PROCESS_ERROR', 400));
     }
 

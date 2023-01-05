@@ -103,7 +103,8 @@ export const createRoles = asyncHandler(async (req: any, res: Response, next: Ne
 
 export const listRolePerComunity = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const { slug } = req.params;
-    const { role } = req.query;
+    let { role, search } = req.query;
+    let where: any = {};
 
     const group = await prisma.group.findFirst({
         where: {
@@ -113,6 +114,30 @@ export const listRolePerComunity = asyncHandler(async (req: any, res: Response, 
 
     if (!group) {
         return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
+    }
+
+    where = {
+        group_id: group.id
+    };
+
+    if (search) {
+        where = {
+            ...where,
+            OR: [
+                {
+                    name: {
+                        contains: search,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    slug: {
+                        contains: search.toLowerCase(),
+                        mode: 'insensitive'
+                    }
+                }
+            ]
+        }    
     }
 
     const permission = myPermissionGroup(group, req.user.id, 'kelola_roles');
@@ -128,7 +153,19 @@ export const listRolePerComunity = asyncHandler(async (req: any, res: Response, 
                 group_id: group.id
             },
             include: {
-                group_role_permissions: true,
+                group_role_permissions: {
+                    orderBy: {
+                        label: 'asc'
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        label: true,
+                        slug: true,
+                        status: true,
+                        description: true,
+                    }
+                },
                 group_members: true
             }
         })
@@ -137,30 +174,29 @@ export const listRolePerComunity = asyncHandler(async (req: any, res: Response, 
             return next(new sendError('Role tidak ditemukan', [], 'NOT_FOUND', 404));
         }
 
-        const labelList = ["Konten", "Anggota", "Komunitas"];
-        const data = labelList.map((label: any) => {
-            const data_role = group_role.group_role_permissions.filter((item: any) => item.label === label);
+        // const labelList = ["Konten", "Anggota", "Komunitas"];
+        // const data = labelList.map((label: any) => {
+        //     const data_role = group_role.group_role_permissions.filter((item: any) => item.label === label);
 
-            return {
-                label: label,
-                children: data_role,
-            }
-        })
+        //     return {
+        //         label: label,
+        //         children: data_role,
+        //     }
+        // })
 
         const results = {
+            id: group_role.id,
             name: group_role.name,
             slug: group_role.slug,
             total_member: group_role.group_members.length,
-            results: data,
+            results: group_role.group_role_permissions,
         }
 
         return res.status(200).json(new sendResponse(results, 'Berhasil mengambil data', {}, 200));
     }
 
     const group_roles = await prisma.groupRole.findMany({
-        where: {
-            group_id: group.id
-        },
+        where: where,
         include: {
             group_members: true
         }
@@ -249,7 +285,7 @@ export const changeStatusPermission = asyncHandler(async (req: any, res: Respons
         }
     }
 
-    if (group_role_permission.slug === 'kelola_komunitas') {
+    if (group_role_permission.slug === 'kelola_komunitas' && group_role_permission_status === false) {
         await Promise.all(slug_permission.map(async (item: any) => {
             const permission = await prisma.groupRolePermission.findFirst({
                 where: {
@@ -343,6 +379,10 @@ export const changeRoleMember = asyncHandler(async (req: any, res: Response, nex
 
     if (!group_role) {
         return next(new sendError('Role tidak ditemukan', [], 'NOT_FOUND', 404));
+    }
+
+    if (group_role.slug === 'owner') {
+        return next(new sendError('Anda tidak dapat mengubah role member menjadi owner', [], 'PROCESS_ERROR', 400));
     }
 
     const update_role = await prisma.groupMember.update({

@@ -7,6 +7,7 @@ import {
     listComunity,
     listMemberComunity,
     listAllMember,
+    listAnswerFormJoin,
     validation,
 } from "../../../controllers/v1/comunities/manage";
 
@@ -31,6 +32,10 @@ router
 router
     .route("/:slug/members")
     .get(protect, listMemberComunity);
+
+router
+    .route("/:slug/members/answer")
+    .get(protect, listAnswerFormJoin);
 
 router 
     .route("/:slug/members/all")

@@ -23,7 +23,7 @@ export const listNavigationGroup = asyncHandler(async (req: any, res: Response, 
     }
 
     if (req.user) {
-        const is_joined = joinedGroup(group, req.user.id);
+        const is_joined = await joinedGroup(group, req.user.id);
         if (!is_joined) {
             return next(new sendError('Anda belum bergabung dengan komunitas ini', [], 'PROCESS_ERROR', 400));
         }
@@ -117,7 +117,7 @@ export const permissionAccessPage = asyncHandler(async (req: any, res: Response,
     }, 'Berhasil mengambil data', {}, 200));
 })
 
-const navigation = (permission: string) => {
+export const navigation = (permission: string) => {
     switch (permission) {
         case 'terima_dan_tolak_permintaan_posting': {
             return [

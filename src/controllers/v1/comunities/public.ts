@@ -5,6 +5,7 @@ import { sendError, sendResponse } from "../../../libraries/rest";
 import { body, validationResult } from "express-validator";
 import { createMemberPermission, createRolePermission, joinedGroup, myPermissionGroup } from "./helper";
 import { pagination } from "../../../libraries/helper";
+import { navigation } from "./navigation_public";
 
 const prisma = new PrismaClient();
 
@@ -50,6 +51,45 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
     const my_member = group.group_members.find((member: any) => member.user_id === req.user?.id);
     group.is_status = my_member ? my_member.status : 'not_member';
     group.is_member = await joinedGroup(group, req.user?.id) ?? false;
+    group.has_kelola = false;
+    const member_role = await prisma.groupMember.findFirst({
+        where: {
+            group_id: group.id,
+            user_id: req.user?.id
+        },
+    })
+
+    if (!member_role) {
+        group.has_kelola = false;
+    }
+
+    if (member_role) {
+        const member_role_permission = await prisma.groupRolePermission.findMany({
+            where: {
+                group_role_id: member_role?.group_role_id
+            },
+        })
+    
+        member_role_permission.forEach((item: any) => {
+            if (item?.status === true) {
+                let dataNav = navigation(item?.slug);
+    
+                if (dataNav.length > 0) {
+                    group.has_kelola = true;
+                }
+            }
+        })
+    }
+
+    const groupPermission = await prisma.groupPermission.findMany({
+        where: {
+            group_id: group.id
+        }
+    })
+
+    const formulir = groupPermission.find((item: any) => item.slug === 'formulir_saat_bergabung');
+    group.has_formulir = formulir ? true : false;
+    
     group.is_owner = group.group_members.find((member: any) => member.user_id === req.user?.id && member.group_role.slug === 'owner') ? true : false;
     group.total_member = group.group_members.length;
     group.total_post = group.group_posts.length;
