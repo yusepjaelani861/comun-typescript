@@ -46,9 +46,9 @@ export const notifications = asyncHandler(async (req: any, res: Response, next: 
             where = {
                 ...where,
                 created_at: {
-                    gte: moment().startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-                    lte: moment().endOf('day').format('YYYY-MM-DD HH:mm:ss')
-                }
+                    lte: new Date(),
+                    gte: new Date(moment().startOf('day').format('YYYY-MM-DD HH:mm:ss')),
+                },
             }
             message = 'Berhasil mengambil data hari ini'
             break;
@@ -58,9 +58,9 @@ export const notifications = asyncHandler(async (req: any, res: Response, next: 
             where = {
                 ...where,
                 created_at: {
-                    gte: moment().subtract(1, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-                    lte: moment().subtract(1, 'days').endOf('day').format('YYYY-MM-DD HH:mm:ss')
-                }
+                    lte: new Date(moment().subtract(1, 'days').endOf('day').format('YYYY-MM-DD HH:mm:ss')),
+                    gte: new Date(moment().subtract(1, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')),
+                },
             }
             message = 'Berhasil mengambil data kemarin'
             break;
@@ -70,8 +70,8 @@ export const notifications = asyncHandler(async (req: any, res: Response, next: 
             where = {
                 ...where,
                 created_at: {
-                    lte: moment().subtract(1, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')
-                }
+                    lte: new Date(moment().subtract(1, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')),
+                },
             }
             message = 'Berhasil mengambil data lebih lama'
             break;
@@ -85,7 +85,7 @@ export const notifications = asyncHandler(async (req: any, res: Response, next: 
     if (read) {
         where = {
             ...where,
-            is_read: read
+            is_read: read == 'true' ? true : false
         }
     }
 
@@ -98,6 +98,16 @@ export const notifications = asyncHandler(async (req: any, res: Response, next: 
         ],
         skip: (page - 1) * limit,
         take: limit,
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    avatar: true
+                }
+            }
+        }
     })
 
     const total = await prisma.notification.count({
