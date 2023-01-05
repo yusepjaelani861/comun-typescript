@@ -11,7 +11,7 @@ export const listConfig = asyncHandler(async (req: any, res: Response, next: Nex
 
     const config = await prisma.config.findMany({
         orderBy: {
-            created_at: 'asc'
+            id: 'asc'
         },
         select: {
             id: true,
@@ -45,7 +45,30 @@ export const getMyConfig = asyncHandler(async (req: any, res: Response, next: Ne
         }
     })
 
-    res.status(200).json(new sendResponse(user_config, 'User config found', {}, 200));
+    const label = ['Notification', 'Appearance']
+    const data: any = [];
+
+    await Promise.all(user_config.map(async (item: any) => {
+        if (item.config.label === 'dark_mode') {
+            data[0] = {
+                label: label[1],
+                children: []
+            }
+
+            data[0].children.push(item)
+        }
+
+        if (item.config.label === 'notification_comment' || item.config.label === 'notification_following' || item.config.label === 'notification_like') {
+            data[1] = {
+                label: label[0],
+                children: []
+            }
+
+            data[1].children.push(item)
+        }
+    }))
+
+    res.status(200).json(new sendResponse(data, 'User config found', {}, 200));
 })
 
 export const updateMyConfig = asyncHandler(async (req: any, res: Response, next: NextFunction) => {

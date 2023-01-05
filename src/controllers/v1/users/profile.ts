@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 export const getProfile = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const { id } = req.user;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         where: {
             id: id
         },
@@ -49,7 +49,7 @@ export const updateProfile = asyncHandler(async (req: any, res: Response, next: 
     const { id } = req.user;
     const { username, name, bio, avatar } = req.body;
 
-    const user : any = await prisma.user.findUnique({
+    const user : any = await prisma.user.findFirst({
         where: {
             id: id
         },
@@ -101,7 +101,7 @@ export const updateAvatar = asyncHandler(async (req: any, res: Response, next: N
 
     const { avatar } = req.body;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         where: {
             id: id
         },

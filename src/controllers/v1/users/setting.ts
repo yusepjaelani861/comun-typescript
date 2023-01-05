@@ -30,11 +30,11 @@ export const updatePassword = asyncHandler(async (req: any, res: Response, next:
 
     const isMatch = await bcrypt.compare(old_password, user.password as string);
     if (!isMatch) {
-        return next(new sendError('Password lama tidak sesuai', [], 'VALIDATION_ERROR', 422));
+        return next(new sendError('Password lama tidak sesuai', [], 'PROCESS_ERROR', 400));
     }
 
     if (new_password !== new_password_confirmation) {
-        return next(new sendError('Konfirmasi password baru tidak sesuai', [], 'PROCESS_ERROR', 422));
+        return next(new sendError('Konfirmasi password baru tidak sesuai', [], 'PROCESS_ERROR', 400));
     }
 
     const salt = await bcrypt.genSalt(10);
