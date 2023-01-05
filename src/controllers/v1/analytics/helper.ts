@@ -1,4 +1,4 @@
-export function createDateRangeArray(firstDate = '2022-01-01', endDate = '2022-01-01') {
+export function createDateRangeArray(firstDate: string, endDate: string) {
     const dateArray: any[] = [];
     let currentDate = new Date(firstDate);
     let stopDate = new Date(endDate);

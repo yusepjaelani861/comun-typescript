@@ -50,8 +50,8 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         where: {
             group_id: group.id,
             updated_at: {
-                gte: from_date,
-                lte: to_date + '23:59:59'
+                gte: new Date(from_date),
+                lte: new Date(to_date + ' 23:59:59')
             }
         }
     })
@@ -60,8 +60,8 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         where: {
             group_id: group.id,
             created_at: {
-                gte: from_date,
-                lte: to_date + '23:59:59'
+                gte: new Date(from_date),
+                lte: new Date(to_date + ' 23:59:59')
             }
         }
     })
@@ -70,8 +70,8 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         where: {
             group_id: group.id,
             created_at: {
-                gte: from_date,
-                lte: to_date + '23:59:59'
+                gte: new Date(from_date),
+                lte: new Date(to_date + ' 23:59:59')
             }
         }
     })
@@ -80,8 +80,8 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         where: {
             group_id: group.id,
             created_at: {
-                gte: from_date,
-                lte: to_date + '23:59:59'
+                gte: new Date(from_date),
+                lte: new Date(to_date + ' 23:59:59')
             },
             unique: true
         }
@@ -91,8 +91,8 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         where: {
             group_id: group.id,
             created_at: {
-                gte: from_date,
-                lte: to_date + '23:59:59'
+                gte: new Date(from_date),
+                lte: new Date(to_date + ' 23:59:59')
             }
         }
     })
@@ -102,47 +102,51 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         total_earning = total_earning + item.earning;
     }))
 
-    data = await Promise.all(post.map(async (item: any) => {
+    let upvote_post: number = 0, downvote_post: number = 0, comment_post: number = 0;
+    await Promise.all(post.map(async (item: any) => {
+        item.upvote_post = 0;
+        item.downvote_post = 0;
+        item.comment_post = 0;
+
         const upvote = await prisma.postUpvote.count({
             where: {
                 post_id: item.id,
-                created_at: {
-                    gte: from_date,
-                    lte: to_date + '23:59:59'
-                }
+                // created_at: {
+                //     gte: new Date(from_date),
+                //     lte: new Date(to_date + ' 23:59:59')
+                    
+                // }
             }
         })
 
         const downvote = await prisma.postDownvote.count({
             where: {
                 post_id: item.id,
-                created_at: {
-                    gte: from_date,
-                    lte: to_date + '23:59:59'
-                }
+                // created_at: {
+                //     gte: new Date(from_date),
+                //     lte: new Date(to_date + ' 23:59:59')
+                // }
             }
         })
 
         const comment = await prisma.postComment.count({
             where: {
                 post_id: item.id,
-                created_at: {
-                    gte: from_date,
-                    lte: to_date + '23:59:59'
-                }
+                // created_at: {
+                //     gte: new Date(from_date),
+                //     lte: new Date(to_date + ' 23:59:59')
+                // }
             }
         })
 
-        return {
-            upvote: upvote,
-            downvote: downvote,
-            comment: comment,
-        }
+        item.upvote_post = upvote + item.upvote_post;
+        item.downvote_post = downvote + item.downvote_post;
+        item.comment_post = comment + item.comment_post;
     }))
 
-    data.upvote = data.reduce((a: any, b: any) => a + b.upvote, 0);
-    data.downvote = data.reduce((a: any, b: any) => a + b.downvote, 0);
-    data.comment = data.reduce((a: any, b: any) => a + b.comment, 0);
+    data.upvote = post.reduce((a: any, b: any) => a + b.upvote_post, 0);
+    data.downvote = post.reduce((a: any, b: any) => a + b.downvote_post, 0);
+    data.comment = post.reduce((a: any, b: any) => a + b.comment_post, 0);
 
     let analytics: Array<any> = [];
 
@@ -155,100 +159,113 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         var newDate = convertDate.toISOString();
         var newDate2 = newDate.split('T')[0];
 
-        const member = await prisma.groupMember.findMany({
+        let newDateS, newDateS2;
+        newDateS = convertDate.toISOString();
+        newDateS2 = newDate.split('T')[0];
+
+        let member, post, total_view, total_unique, stays, earning;
+
+        member = await prisma.groupMember.findMany({
             where: {
                 group_id: group.id,
                 updated_at: {
-                    gte: newDate2,
-                    lte: newDate2 + '23:59:59'
+                    gte: new Date(newDateS2 + 'T00:00:00.000Z'),
+                    lte: new Date(newDateS2 + 'T23:59:59.999Z')
                 }
             }
         })
 
-        const total_view = await prisma.groupAnalytic.count({
+        total_view = await prisma.groupAnalytic.count({
             where: {
                 group_id: group.id,
                 created_at: {
-                    gte: newDate2,
-                    lte: newDate2 + '23:59:59'
+                    gte: new Date(newDateS2 + 'T00:00:00.000Z'),
+                    lte: new Date(newDateS2 + 'T23:59:59.999Z')
                 }
             }
         })
 
-        const total_unique = await prisma.groupAnalytic.count({
+        total_unique = await prisma.groupAnalytic.count({
             where: {
                 group_id: group.id,
                 created_at: {
-                    gte: newDate2,
-                    lte: newDate2 + '23:59:59'
+                    gte: new Date(newDateS2 + 'T00:00:00.000Z'),
+                    lte: new Date(newDateS2 + 'T23:59:59.999Z')
                 },
             }
         })
 
-        const stays = await prisma.groupAnalytic.findMany({
+        stays = await prisma.groupAnalytic.findMany({
             where: {
                 group_id: group.id,
                 created_at: {
-                    gte: newDate2,
-                    lte: newDate2 + '23:59:59'
+                    gte: new Date(newDateS2 + 'T00:00:00.000Z'),
+                    lte: new Date(newDateS2 + 'T23:59:59.999Z')
                 }
             }
         })
 
-        const total_stays = stays.reduce((a: any, b: any) => a + b.spend_time, 0);
-        const total_earning = stays.reduce((a: any, b: any) => a + b.earning, 0);
+        total_stays = stays.reduce((a: any, b: any) => a + b.spend_time, 0);
+        total_earning = stays.reduce((a: any, b: any) => a + b.earning, 0);
 
-        const post = await prisma.post.findMany({
+        
+        post = await prisma.post.findMany({
             where: {
                 group_id: group.id,
                 created_at: {
-                    gte: newDate2,
-                    lte: newDate2 + '23:59:59'
+                    gte: new Date(newDateS2 + 'T00:00:00.000Z'),
+                    lte: new Date(newDateS2 + 'T23:59:59.999Z')
                 }
             }
         })
 
-        let data: any = await Promise.all(post.map(async (item: any) => {
+        
+        let upvote_post: number = 0, downvote_post: number = 0, comment_post: number = 0;
+        let dataChild: any = {};
+        await Promise.all(post.map(async (item: any) => {
+            item.upvote_post = 0;
+            item.downvote_post = 0;
+            item.comment_post = 0;
+
             const upvote = await prisma.postUpvote.count({
                 where: {
                     post_id: item.id,
-                    created_at: {
-                        gte: newDate2,
-                        lte: newDate2 + '23:59:59'
-                    }
+                    // created_at: {
+                    //     gte: convertDate,
+                    //     lte: new Date(convertDate.getTime() + 86400000)
+                    // }
                 }
             })
 
             const downvote = await prisma.postDownvote.count({
                 where: {
                     post_id: item.id,
-                    created_at: {
-                        gte: newDate2,
-                        lte: newDate2 + '23:59:59'
-                    }
+                    // created_at: {
+                    //     gte: convertDate,
+                    //     lte: new Date(convertDate.getTime() + 86400000)
+                    // }
                 }
             })
 
             const comment = await prisma.postComment.count({
                 where: {
                     post_id: item.id,
-                    created_at: {
-                        gte: newDate2,
-                        lte: newDate2 + '23:59:59'
-                    }
+                    // created_at: {
+                    //     gte: convertDate,
+                    //     lte: new Date(convertDate.getTime() + 86400000)
+                    // }
                 }
             })
 
-            return {
-                upvote: upvote,
-                downvote: downvote,
-                comment: comment,
-            }
+            
+            item.upvote_post = upvote + item.upvote_post;
+            item.downvote_post = downvote + item.downvote_post;
+            item.comment_post = comment + item.comment_post;
         }))
 
-        data.upvote = data.reduce((a: any, b: any) => a + b.upvote, 0);
-        data.downvote = data.reduce((a: any, b: any) => a + b.downvote, 0);
-        data.comment = data.reduce((a: any, b: any) => a + b.comment, 0);
+        dataChild.upvote = post.reduce((a: any, b: any) => a + b.upvote_post, 0);
+        dataChild.downvote = post.reduce((a: any, b: any) => a + b.downvote_post, 0);
+        dataChild.comment = post.reduce((a: any, b: any) => a + b.comment_post, 0);
 
         hehe.push({
             date: newDate2,
@@ -256,9 +273,9 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
             total_unique_views: total_unique,
             total_stays: total_stays,
             total_earnings: total_earning,
-            total_upvotes: data.upvote,
-            total_downvotes: data.downvote,
-            total_comments: data.comment,
+            total_upvotes: dataChild.upvote,
+            total_downvotes: dataChild.downvote,
+            total_comments: dataChild.comment,
             total_shares: 0,
             total_posts: post.length,
             total_members: member.length
