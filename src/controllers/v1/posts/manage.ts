@@ -68,19 +68,25 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
 
                 where = {
                     ...where,
-                    group_id: {
-                        in: group_ids
-                    },
-                    group: {
-                        OR: [
-                            {
-                                privacy: 'public'
+                    OR: [
+                        {
+                            group_id: {
+                                in: group_ids
                             },
-                            {
-                                privacy: 'restricted'
-                            }
-                        ]
-                    },
+                        },
+                        {
+                            group: {
+                                OR: [
+                                    {
+                                        privacy: 'public'
+                                    },
+                                    {
+                                        privacy: 'restricted'
+                                    }
+                                ]
+                            },
+                        }
+                    ],
                 }
             } else {
                 where = {
@@ -223,6 +229,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
 
             where = {
                 ...where,
+                id: post.id
             }
 
             break;
@@ -234,7 +241,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
     }
 
     let post: any;
-    if (type !== 'detail' || type !== 'answer') {
+    if (type !== 'detail' && type !== 'answer') {
         post = await prisma.post.findMany({
             where: where,
             orderBy: orderBy.length > 0 ? orderBy : [
@@ -261,9 +268,36 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                     },
                 },
                 post_comments: true,
-                post_upvotes: true,
+                post_upvotes: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                username: true,
+                                avatar: true,
+                            }
+                        }
+                    }
+                },
                 post_downvotes: true,
-                post_vote_options: true,
+                post_vote_options: {
+                    include: {
+                        post_vote_members: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        username: true,
+                                        avatar: true,
+                                    }
+                                }
+                            },
+                            take: 3,
+                        }
+                    }
+                },
             },
             take: limit,
             skip: (page - 1) * limit,
@@ -278,7 +312,69 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
         })
 
         return res.status(200).json(new sendResponse(post, 'Berhasil mengambil data', pagination(page, limit, total), 200));
-    } else {
+    } else if (type === 'detail') {
+        post = await prisma.post.findFirst({
+            where: where,
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        username: true,
+                        avatar: true,
+                    }
+                },
+                group: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        avatar: true,
+                        privacy: true,
+                    },
+                },
+                post_comments: true,
+                post_upvotes: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                username: true,
+                                avatar: true,
+                            }
+                        }
+                    }
+                },
+                post_downvotes: true,
+                post_vote_options: {
+                    include: {
+                        post_vote_members: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        username: true,
+                                        avatar: true,
+                                    }
+                                }
+                            },
+                            take: 3,
+                        }
+                    }
+                },
+            },
+        });
+
+        if (!post) {
+            return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
+        }
+
+        await convertResPost(post, req.user?.id);
+
+        return res.status(200).json(new sendResponse(post, 'Berhasil mengambil postingan', {}, 200));
+    } else if (type === 'answer') {
         post = await prisma.post.findFirst({
             where: where,
             include: {
@@ -356,7 +452,18 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
         return next(new sendError('Anda tidak memiliki akses', [], 'PROCESS_ERROR', 400));
     }
 
-    const post_status = group.privacy === 'public' ? 'published' : 'pending';
+    let post_status: any;
+    post_status = 'published';
+    const groupPermission = await prisma.groupPermission.findFirst({
+        where: {
+            group_id: group.id,
+            slug: 'persetujuan_posting'
+        }
+    })
+
+    if (groupPermission?.status === true) {
+        post_status = 'pending';
+    }
 
     if (post_body) {
         body_to_json = parse(post_body);
@@ -399,113 +506,144 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
     }
 
     post_slug = random_slug;
-    try {
-        await prisma.$transaction(async (prisma) => {
-            post = await prisma.post.create({
-                data: {
-                    title: post_title,
-                    slug: post_slug,
-                    body: post_body ? JSON.stringify(body_to_json) : [],
-                    content_type: post_content_type,
-                    attachments: post_attachments,
-                    group_id: post_group_id,
-                    question_post_id: post_question_id ? post_question_id : null,
-                    user_id: req.user.id,
-                    seo_title: post_title,
-                    seo_description: paragraph[0].children[0].content,
-                    status: post_status,
-                }
-            })
-
-            // span attributes value hastag
-            const search_class_hastag = body_to_json?.filter((item: any) => item.tagName === 'span' && item.attributes[0].value === 'hastag');
-
-            if (typeof search_class_hastag !== 'undefined' && search_class_hastag.length > 0) {
-                await Promise.all(search_class_hastag.map(async (item: any) => {
-                    let cek_tag = await prisma.tag.findFirst({
-                        where: {
-                            name: item.children[0].content
-                        }
-                    })
-
-                    if (!cek_tag) {
-                        cek_tag = await prisma.tag.create({
-                            data: {
-                                name: item.children[0].content,
-                                slug: item.children[0].content.toLowerCase().replace(/[^\w ]/g, "").replace(/\s+/g, "-"),
-                            }
-                        })
-                    }
-
-                    await prisma.postTag.create({
-                        data: {
-                            post_id: post.id,
-                            tag_id: cek_tag.id,
-                            tag_name: cek_tag.name,
-                        }
-                    })
-                }))
+    // try {
+    await prisma.$transaction(async (prisma) => {
+        post = await prisma.post.create({
+            data: {
+                title: post_title,
+                slug: post_slug,
+                body: post_body ? JSON.stringify(body_to_json) : JSON.stringify([]),
+                content_type: post_content_type,
+                attachments: post_attachments,
+                group_id: post_group_id,
+                question_post_id: post_question_id ? post_question_id : null,
+                user_id: req.user.id,
+                seo_title: post_title,
+                seo_description: post_body ? post_body.substring(0, 160) : null,
+                status: post_status,
             }
         })
 
-        let posts: any = await prisma.post.findFirst({
-            where: {
-                id: post.id
-            },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        username: true,
-                        avatar: true,
+        if (body_to_json) {
+            let search_class_hastag = body_to_json.find(
+                (res: any) =>
+                    res.type == "element" &&
+                    res.tagName == "p" &&
+                    res.children.find(
+                        (res: any) =>
+                            res.type == "element" &&
+                            res.tagName == "span" &&
+                            res.attributes.find((res: any) => res.value == "hashtag")
+                    )
+            );
+    
+            if (typeof search_class_hastag !== 'undefined') {
+                await Promise.all(search_class_hastag.children.map(async (res: any) => {
+                    if (res.children) {
+                        await Promise.all(res.children.map(async (res: any) => {
+                            let tag: any;
+                            tag = await prisma.tag.findFirst({
+                                where: {
+                                    name: res.content
+                                }
+                            })
+    
+                            if (!tag) {
+                                let slug_Tag = res.content
+                                    .replace(/[^\w ]/g, "")
+                                    .replace(/\s+/g, "-")
+                                    .toLowerCase();
+                                let i = 1;
+                                while (await prisma.tag.findFirst({ where: { slug: slug_Tag } })) {
+                                    slug_Tag =
+                                        res.content
+                                            .replace(/[^\w ]/g, "")
+                                            .replace(/\s+/g, "-")
+                                            .toLowerCase() +
+                                        "-" +
+                                        i++;
+                                }
+    
+                                tag = await prisma.tag.create({
+                                    data: {
+                                        name: res.content,
+                                        slug: slug_Tag,
+                                    }
+                                })
+                            }
+    
+                            await prisma.postTag.create({
+                                data: {
+                                    tag_id: tag.id,
+                                    tag_name: res.content,
+                                    post_id: post.id,
+                                }
+                            })
+                        }));
                     }
+                }));
+            }
+        }
+    })
+
+    let posts: any = await prisma.post.findFirst({
+        where: {
+            id: post.id
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    avatar: true,
+                }
+            },
+            group: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    avatar: true,
                 },
-                group: {
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                        avatar: true,
-                    },
-                },
-                post_comments: true,
-                post_upvotes: true,
-                post_downvotes: true,
-                post_vote_options: true,
+            },
+            post_comments: true,
+            post_upvotes: true,
+            post_downvotes: true,
+            post_vote_options: true,
+        },
+    })
+
+    if (post_content_type === 'answer_question') {
+        const post_before: any = await prisma.post.findFirst({
+            where: {
+                id: post_question_id
             },
         })
 
-        if (post_content_type === 'answer_question') {
-            const post_before: any = await prisma.post.findFirst({
-                where: {
-                    id: post_question_id
-                },
-            })
-
-            url = '/' + posts.group.slug + '/' + post_before.slug + '/' + posts.slug;
-        } else {
-            url = '/' + posts.group.slug + '/' + posts.slug;
-        }
-
-        await convertResPost(posts, req.user?.id);
-
-        post.url = url;
-
-        // posts.url = url;
-        // posts.created_at_formatted = moment(posts.created_at).fromNow();
-        // posts.updated_at_formatted = moment(posts.updated_at).fromNow();
-        // posts.post_comments_count = posts.post_comments.length;
-        // posts.post_upvotes_count = posts.post_upvotes.length;
-        // posts.post_downvotes_count = posts.post_downvotes.length;
-        // posts.post_vote_options_count = posts.post_vote_options.length;
-        // posts.is_downvote = false;
-        // posts.is_upvote = false;
-
-        return res.status(200).json(new sendResponse(posts, 'Berhasil membuat postingan', {}, 200));
-    } catch (error: any) {
-        return next(new sendError('Gagal membuat post', error, 'PROCESS_ERROR', 400));
+        url = '/' + posts.group.slug + '/' + post_before.slug + '/' + posts.slug;
+    } else {
+        url = '/' + posts.group.slug + '/' + posts.slug;
     }
+
+    await convertResPost(posts, req.user?.id);
+
+    post.url = url;
+
+    // posts.url = url;
+    // posts.created_at_formatted = moment(posts.created_at).fromNow();
+    // posts.updated_at_formatted = moment(posts.updated_at).fromNow();
+    // posts.post_comments_count = posts.post_comments.length;
+    // posts.post_upvotes_count = posts.post_upvotes.length;
+    // posts.post_downvotes_count = posts.post_downvotes.length;
+    // posts.post_vote_options_count = posts.post_vote_options.length;
+    // posts.is_downvote = false;
+    // posts.is_upvote = false;
+
+    return res.status(200).json(new sendResponse(posts, 'Berhasil membuat postingan', {}, 200));
+    // } catch (error: any) {
+    //     return next(new sendError('Gagal membuat post', error, 'PROCESS_ERROR', 400));
+    // }
 })
 
 export const updatePost = asyncHandler(async (req: any, res: Response, next: NextFunction) => {

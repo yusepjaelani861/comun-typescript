@@ -133,7 +133,14 @@ export const reports = asyncHandler(async (req: any, res: Response, next: NextFu
 
     const reports: any = await prisma.postReport.findMany({
         where: {
-            group_id: group.id
+            group_id: group.id,
+            post: {
+                status: 'report',
+                title: {
+                    contains: search ? search : '',
+                    mode: 'insensitive'
+                }
+            }
         },
         include: {
             post: {
@@ -156,9 +163,36 @@ export const reports = asyncHandler(async (req: any, res: Response, next: NextFu
                         },
                     },
                     post_comments: true,
-                    post_upvotes: true,
+                    post_upvotes: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    username: true,
+                                    avatar: true,
+                                }
+                            }
+                        }
+                    },
                     post_downvotes: true,
-                    post_vote_options: true,
+                    post_vote_options: {
+                        include: {
+                            post_vote_members: {
+                                include: {
+                                    user: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            username: true,
+                                            avatar: true,
+                                        }
+                                    }
+                                },
+                                take: 3,
+                            }
+                        }
+                    },
                 },
             },
             user: {

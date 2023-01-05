@@ -66,7 +66,7 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
     const post = await prisma.post.create({
         data: {
             title: post_title,
-            body: post_body ? body_to_json : [],
+            body: post_body ? body_to_json : JSON.stringify([]),
             slug: slug,
             group_id: post_group_id,
             user_id: req.user?.id,

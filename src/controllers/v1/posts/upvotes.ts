@@ -111,15 +111,29 @@ export const upvotesDownvotes = asyncHandler(async (req: any, res: Response, nex
 
     if (message === 'Upvotes ditambahkan') {
         if (post.user_id !== req.user?.id) {
-            await prisma.notification.create({
-                data: {
+            const cek_user_config = await prisma.userConfig.findFirst({
+                where: {
                     user_id: post.user_id,
-                    from_user_id: req.user?.id,
-                    type: 'post_upvote',
-                    body: `<strong>${req.user?.name}</strong> mendukung postingan anda <strong>${post.title}</strong>`,
-                    url: `/${post.group?.slug}/${post.slug}`
+                    config: {
+                        label: 'notification_like'
+                    }
+                },
+                include: {
+                    config: true
                 }
             })
+
+            if (cek_user_config?.value === true) {
+                await prisma.notification.create({
+                    data: {
+                        user_id: post.user_id,
+                        from_user_id: req.user?.id,
+                        type: 'post_upvote',
+                        body: `<strong>${req.user?.name}</strong> mendukung postingan anda <strong>${post.title}</strong>`,
+                        url: `/${post.group?.slug}/${post.slug}`
+                    }
+                })
+            }
         }
     }
 

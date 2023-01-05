@@ -150,6 +150,21 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
             },
         })
 
+        await Promise.all(replies.map(async (item: any) => {
+            item.upvote_count = item.post_comment_upvotes.length;
+            item.downvote_count = item.post_comment_downvotes.length;
+            item.is_upvote = false;
+            item.is_downvote = false;
+            if (req.user) {
+                item.is_upvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id);
+                item.is_downvote = item.post_comment_downvotes.some((item: any) => item.user_id === req.user.id);
+            }
+            item.created_at_formatted = moment(item.created_at).fromNow();
+
+            delete item.post_comment_upvotes;
+            delete item.post_comment_downvotes;
+        }))
+
         item.reply = replies;
         item.reply_count = replies.length;
         item.upvote_count = item.post_comment_upvotes.length;
@@ -164,6 +179,8 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
 
         delete item.post_comment_upvotes;
         delete item.post_comment_downvotes;
+
+        
     }));
 
     return res.json(new sendResponse(comments, 'Berhasil mengambil data', pagination(page, limit, total), 200));
@@ -245,15 +262,29 @@ export const createComment = asyncHandler(async (req: any, res: Response, next: 
     delete comment.post_comment_upvotes;
     delete comment.post_comment_downvotes;
 
-    await prisma.notification.create({
-        data: {
+    const cek_user_config = await prisma.userConfig.findFirst({
+        where: {
             user_id: post.user_id,
-            from_user_id: req.user?.id,
-            body: `<strong>${req.user?.name}</strong> mengomentari postingan anda <strong>${post.title}</strong>`,
-            type: 'comment',
-            url: `/${post.group.slug}/${post.slug}`
+            config: {
+                label: 'notification_comment'
+            }
+        },
+        include: {
+            config: true
         }
     })
+
+    if (cek_user_config?.value === true) {
+        await prisma.notification.create({
+            data: {
+                user_id: post.user_id,
+                from_user_id: req.user?.id,
+                body: `<strong>${req.user?.name}</strong> mengomentari postingan anda <strong>${post.title}</strong>`,
+                type: 'comment',
+                url: `/${post.group.slug}/${post.slug}`
+            }
+        })
+    }
 
     return res.json(new sendResponse(comment, 'Berhasil membuat komentar', [], 200));
 })
@@ -391,15 +422,29 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
 
     if (message == 'Berhasil melakukan upvote') {
         if (comment.user_id != req.user.id) {
-            await prisma.notification.create({
-                data: {
+            const cek_user_config = await prisma.userConfig.findFirst({
+                where: {
                     user_id: comment.user_id,
-                    from_user_id: req.user?.id,
-                    body: `<strong>${req.user?.name}</strong> mendukung komentar anda <strong>${comment.body}</strong>`,
-                    type: 'comment_upvote',
-                    url: `/${comment.post.group.slug}/${comment.post.slug}`
+                    config: {
+                        label: 'notification_comment'
+                    }
+                },
+                include: {
+                    config: true
                 }
             })
+
+            if (cek_user_config?.value === true) {
+                await prisma.notification.create({
+                    data: {
+                        user_id: comment.user_id,
+                        from_user_id: req.user?.id,
+                        body: `<strong>${req.user?.name}</strong> mendukung komentar anda <strong>${comment.body}</strong>`,
+                        type: 'comment_upvote',
+                        url: `/${comment.post.group.slug}/${comment.post.slug}`
+                    }
+                })
+            }
         }
     }
 

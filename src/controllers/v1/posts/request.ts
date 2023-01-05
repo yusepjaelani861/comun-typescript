@@ -102,7 +102,23 @@ export const requestPost = asyncHandler(async (req: any, res: Response, next: Ne
             post_comments: true,
             post_upvotes: true,
             post_downvotes: true,
-            post_vote_options: true,
+            post_vote_options: {
+                include: {
+                    post_vote_members: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    username: true,
+                                    avatar: true,
+                                }
+                            }
+                        },
+                        take: 3,
+                    }
+                }
+            },
         },
         orderBy: orderBy.length > 0 ? orderBy : [
             {
@@ -229,7 +245,23 @@ export const viewRequestPost = asyncHandler(async (req: any, res: Response, next
             post_comments: true,
             post_upvotes: true,
             post_downvotes: true,
-            post_vote_options: true,
+            post_vote_options: {
+                include: {
+                    post_vote_members: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    username: true,
+                                    avatar: true,
+                                }
+                            }
+                        },
+                        take: 3,
+                    }
+                }
+            },
         },
     })
 
@@ -267,7 +299,7 @@ export const validation = (method: string) => {
                 body("status")
                     .notEmpty()
                     .withMessage("Post status is required")
-                    .isIn(["published", "rejected"])
+                    .isIn(["published", "reject"])
                     .withMessage("Post status must be published or rejected"),
             ]
         }
