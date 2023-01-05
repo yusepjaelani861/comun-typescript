@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload());
 
 app.use('/public/images/avatar', express.static('src/public/images/avatar'));
+app.use('/public/images/post', express.static('src/public/images/post'));
 
 app.use(cors({
     origin: function (origin, callback) {
