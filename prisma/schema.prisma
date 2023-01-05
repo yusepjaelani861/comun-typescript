@@ -497,7 +497,7 @@ model Notification {
   is_read Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [from_user_id], references: [id])
 }
 
 enum NotificationType {
