@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import asyncHandler from "../../../middleware/async";
 import { sendError, sendResponse } from "../../../libraries/rest";
 import { body, validationResult } from "express-validator";
-import { createMemberPermission, createRolePermission, joinedGroup, myPermissionGroup } from "./helper";
+import { createGroupPermission, createMemberPermission, createRolePermission, joinedGroup, myPermissionGroup } from "./helper";
 import { pagination } from "../../../libraries/helper";
 
 const prisma = new PrismaClient();
@@ -75,8 +75,8 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
         }
     })
 
-    createRolePermission(comunity, owner);
-    createGroupPermission(comunity.id)
+    await createRolePermission(comunity, owner);
+    await createGroupPermission(comunity.id)
 
     await prisma.groupDompet.create({
         data: {
@@ -86,47 +86,6 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
 
     return res.status(200).json(new sendResponse(comunity, 'Comunity created', {}, 200));
 })
-
-const permissonGroup = [
-    {
-        name: 'Persetujuan Bergabung',
-        slug: 'persetujuan_bergabung',
-        description: 'Saat ada anggota baru bergabung harus ada persetujuan dari role tertentu',
-    },
-    {
-        name: 'Formulir saat Bergabung',
-        slug: 'formulir_saat_bergabung',
-        description: 'Mengisi form saat bergabung ke komunitas'
-    },
-    {
-        name: 'Persetujuan posting',
-        slug: 'persetujuan_posting',
-        description: 'Saat ada anggota yang memposting harus ada persetujuan dari role tertentu',
-    }
-]
-
-export const createGroupPermission = async (group_id: number) => {
-    await Promise.all(permissonGroup.map(async (permission: any) => {
-        let cek = await prisma.groupPermission.findFirst({
-            where: {
-                group_id: group_id,
-                slug: permission.slug,
-            }
-        })
-
-        if (!cek) {
-            await prisma.groupPermission.create({
-                data: {
-                    group_id: group_id,
-                    name: permission.name,
-                    slug: permission.slug,
-                    description: permission.description,
-                    status: false,
-                }
-            })
-        }
-    }))
-}
 
 export const joinComunity = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const { slug } = req.params;
