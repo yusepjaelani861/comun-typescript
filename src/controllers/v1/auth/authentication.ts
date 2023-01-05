@@ -159,6 +159,27 @@ export const verify_and_update = asyncHandler(async (req: Request, res: Response
         }
     })
 
+    const config = await prisma.config.findMany()
+
+    await Promise.all(config.map(async (item) => {
+        const cek = await prisma.userConfig.findFirst({
+            where: {
+                user_id: user.id,
+                config_id: item.id
+            }
+        })
+
+        if (!cek) {
+            await prisma.userConfig.create({
+                data: {
+                    user_id: user.id,
+                    config_id: item.id,
+                    value: true,
+                }
+            })
+        }
+    }))
+
     const token = jwt.sign({ id: user.id }, jwt_secret, {
         expiresIn: jwt_expired
     });
