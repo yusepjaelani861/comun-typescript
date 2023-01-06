@@ -914,16 +914,19 @@ const permissonGroup = [
         name: 'Persetujuan Bergabung',
         slug: 'persetujuan_bergabung',
         description: 'Saat ada anggota baru bergabung harus ada persetujuan dari role tertentu',
+        label: 'Anggota',
     },
     {
         name: 'Formulir saat Bergabung',
         slug: 'formulir_saat_bergabung',
-        description: 'Mengisi form saat bergabung ke komunitas'
+        description: 'Mengisi form saat bergabung ke komunitas',
+        label: 'Anggota',
     },
     {
         name: 'Persetujuan posting',
         slug: 'persetujuan_posting',
         description: 'Saat ada anggota yang memposting harus ada persetujuan dari role tertentu',
+        label: 'Postingan',
     }
 ]
 
@@ -944,6 +947,7 @@ export const createGroupPermission = async (group_id: number) => {
                     slug: permission.slug,
                     description: permission.description,
                     status: false,
+                    label: permission.label,
                 }
             })
         }

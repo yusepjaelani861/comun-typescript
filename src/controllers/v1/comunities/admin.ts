@@ -98,7 +98,22 @@ export const requestJoinComunity = asyncHandler(async (req: any, res: Response, 
         take: limit,
         orderBy: {
             id: 'desc'
-        }
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    avatar: true,
+                }
+            },
+            group_member_forms: {
+                include: {
+                    group_form: true,
+                }
+            },
+        },
     })
 
     const total_members = await prisma.groupMember.count({

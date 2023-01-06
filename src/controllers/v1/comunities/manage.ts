@@ -88,6 +88,11 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
 })
 
 export const joinComunity = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
+    }
+    
     const { slug } = req.params;
     const {
         answer,
@@ -190,7 +195,7 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
                 ], 'PROCESS_ERROR', 400));
             }
 
-            if (answer.find((item: any) => !item.id || !item.value)) {
+            if (answer.find((item: any) => !item.id || !item.value || item.value === '')) {
                 return next(new sendError('Jawaban formulir tidak lengkap!', [
                     {
                         id: 'id',

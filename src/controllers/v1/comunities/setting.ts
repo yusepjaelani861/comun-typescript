@@ -32,27 +32,7 @@ export const settings = asyncHandler(async (req: any, res: Response, next: NextF
         }
     })
 
-    const label = ['Anggota', 'Postingan'];
-    const data: any = [];
-    await Promise.all(groupPermission.map(async (item: any) => {
-        if (item.slug === 'persetujuan_bergabung' || item.slug === 'formulir_saat_bergabung') {
-            data[0] = {
-                label: label[0],
-                children: []
-            }
-            data[0].children.push(item)
-        }
-        
-        if (item.slug === 'persetujuan_posting') {
-            data[1] = {
-                label: label[1],
-                children: []
-            }
-            data[1].children.push(item)
-        }
-    }))
-
-    res.status(200).json(new sendResponse(data, 'Berhasil mengambil data', {}, 200));
+    res.status(200).json(new sendResponse(groupPermission, 'Berhasil mengambil data', {}, 200));
 })
 
 export const settingPrivacy = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
@@ -128,6 +108,7 @@ export const togglePermission = asyncHandler(async (req: any, res: Response, nex
 
     const group_permission = await prisma.groupPermission.findFirst({
         where: {
+            group_id: group.id,
             slug: slug
         }
     })
@@ -145,6 +126,25 @@ export const togglePermission = asyncHandler(async (req: any, res: Response, nex
         })
         if (!cek) {
             return next(new sendError('Anda harus mengaktifkan persetujuan bergabung', [], 'PROCESS_ERROR', 400));
+        }
+    }
+
+    if (group_permission.slug === 'persetujuan_bergabung' && group_permission.status === true) {
+        const cek = await prisma.groupPermission.findFirst({
+            where: {
+                slug: 'formulir_saat_bergabung',
+                status: true,
+            }
+        })
+        if (cek) {
+            await prisma.groupPermission.update({
+                where: {
+                    id: cek.id
+                },
+                data: {
+                    status: false
+                }
+            })
         }
     }
 
@@ -172,10 +172,6 @@ export const addFormulir = asyncHandler(async (req: any, res: Response, next: Ne
     }
 
     const { slug_group } = req.params;
-
-    const {
-        name,
-    } = req.body;
 
     const group = await prisma.group.findFirst({
         where: {
@@ -205,17 +201,69 @@ export const addFormulir = asyncHandler(async (req: any, res: Response, next: Ne
 
     try {
         await prisma.$transaction(async (prisma) => {
-            await prisma.groupForm.create({
+            const form = await prisma.groupForm.create({
                 data: {
-                    name: name,
                     group_id: group.id,
                 }
             })
+            res.json(new sendResponse(form, 'Berhasil menambah formulir', [], 200))
         })
-        res.json(new sendResponse([], 'Berhasil menambah formulir', [], 200))
     } catch (error) {
         return next(new sendError('Gagal menambah formulir', [], 'PROCESS_ERROR', 400));
     }
+})
+
+export const updateFormulir = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
+    }
+
+    const { slug } = req.params;
+    const {
+        id,
+        name,
+    } = req.body;
+
+    if (!slug) {
+        return next(new sendError('Slug tidak boleh kosong', [], 'PROCESS_ERROR', 400));
+    }
+
+    const group: any = await prisma.group.findFirst({
+        where: {
+            slug: slug
+        }
+    })
+
+    if (!group) {
+        return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
+    }
+
+    const permission = myPermissionGroup(group, req.user?.id, 'pengaturan');
+    if (!permission) {
+        return next(new sendError('Anda tidak memiliki akses', [], 'PROCESS_ERROR', 400));
+    }
+
+    const group_permission = await prisma.groupPermission.findFirst({
+        where: {
+            slug: 'formulir_saat_bergabung',
+            status: true
+        }
+    })
+
+    if (!group_permission) {
+        return next(new sendError('Izin formulir nonaktif', [], 'PROCESS_ERROR', 400));
+    }
+
+    const form = await prisma.groupForm.update({
+        where: {
+            id: id
+        },
+        data: {
+            name: name
+        }
+    })
+    res.json(new sendResponse(form, 'Berhasil mengubah formulir', [], 200))
 })
 
 export const deleteFormulir = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
@@ -269,15 +317,15 @@ export const deleteFormulir = asyncHandler(async (req: any, res: Response, next:
                 }
             })
         })
-        return next(new sendResponse([], 'Berhasil menghapus formulir', [], 200));
+        res.json(new sendResponse([], 'Berhasil menghapus formulir', [], 200));
     } catch (error) {
         return next(new sendError('Gagal menghapus formulir', [], 'PROCESS_ERROR', 400));
     }
-}) 
+})
 
 export const listFormulir = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const { slug } = req.params;
-    
+
     const group = await prisma.group.findFirst({
         where: {
             slug: slug
@@ -288,16 +336,16 @@ export const listFormulir = asyncHandler(async (req: any, res: Response, next: N
         return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
     }
 
-    const groupPermission = await prisma.groupPermission.findFirst({
-        where: {
-            slug: 'formulir_saat_bergabung',
-            status: true
-        }
-    })
+    // const groupPermission = await prisma.groupPermission.findFirst({
+    //     where: {
+    //         slug: 'formulir_saat_bergabung',
+    //         status: true
+    //     }
+    // })
 
-    if (!groupPermission) {
-        return next(new sendError('Pengaturan formulir untuk bergabung tidak aktif', [], 'PROCESS_ERROR', 400));
-    }
+    // if (!groupPermission) {
+    //     return next(new sendError('Pengaturan formulir untuk bergabung tidak aktif', [], 'PROCESS_ERROR', 400));
+    // }
 
     const forms = await prisma.groupForm.findMany({
         where: {
@@ -318,13 +366,21 @@ export const validation = (method: string) => {
 
         case 'addFormulir': {
             return [
-                body('name').notEmpty().withMessage('Nama tidak boleh kosong').isString().withMessage('Nama harus berupa string'),
+                //
             ]
         }
 
         case 'togglePermission': {
             return [
                 body('slug').notEmpty().withMessage('Slug tidak boleh kosong').isString().withMessage('Slug harus berupa string'),
+            ]
+            break;
+        }
+
+        case 'updateFormulir': {
+            return [
+                body('id').notEmpty().withMessage('ID tidak boleh kosong').isInt().withMessage('ID harus berupa angka'),
+                body('name').notEmpty().withMessage('Nama tidak boleh kosong').isString().withMessage('Nama harus berupa string'),
             ]
             break;
         }

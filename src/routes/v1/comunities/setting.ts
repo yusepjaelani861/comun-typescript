@@ -7,6 +7,7 @@ import {
     listFormulir,
     settingPrivacy,
     togglePermission,
+    updateFormulir,
     validation,
 } from "../../../controllers/v1/comunities/setting";
 
@@ -21,7 +22,7 @@ router
     .post(protect, validation('settingPrivacy'), settingPrivacy);
 
 router
-    .route("/:slug/setting/permission")
+    .route("/:slug_group/setting/permission")
     .post(protect, validation('togglePermission'), togglePermission);
 
 router
@@ -33,7 +34,11 @@ router
     .post(protect, validation('addFormulir'), addFormulir);
 
 router
-    .route("/:slug/setting/formulir/:id")
+    .route("/:slug/setting/formulir/update")
+    .post(protect, validation('updateFormulir'), updateFormulir);
+
+router
+    .route("/:slug_group/setting/formulir/:id")
     .delete(protect, deleteFormulir);
 
 export default router;

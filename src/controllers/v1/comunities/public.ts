@@ -87,8 +87,8 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
         }
     })
 
-    const formulir = groupPermission.find((item: any) => item.slug === 'formulir_saat_bergabung');
-    group.has_formulir = formulir ? true : false;
+    const formulir: any = groupPermission.find((item: any) => item.slug === 'formulir_saat_bergabung');
+    group.has_formulir = formulir.status
     
     group.is_owner = group.group_members.find((member: any) => member.user_id === req.user?.id && member.group_role.slug === 'owner') ? true : false;
     group.total_member = group.group_members.length;
