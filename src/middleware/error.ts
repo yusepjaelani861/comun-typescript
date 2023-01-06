@@ -37,6 +37,18 @@ const errorHandler = (err: any, req: Request, res: Response, next: NextFunction)
         })
     }
 
+    if (typeof (err) !== 'undefined' && err.error.error_code == 'PROCESS_ERROR') {
+        return res.status(err.status || 400).json({
+            success: false,
+            message: err.message || 'Server Error',
+            data: err.data || null,
+            error: {
+                error_code: err.error?.error_code || 'PROCESS_ERROR',
+                error_data: err.error_data || null,
+            }
+        })
+    }
+
     if (err.name == 'SequelizeDatabaseError') {
         return res.status(500).json({
             success: false,
