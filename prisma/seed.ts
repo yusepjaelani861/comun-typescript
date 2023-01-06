@@ -10,18 +10,22 @@ async function main() {
             {
                 name: 'Mode Gelap',
                 label: 'dark_mode',
+                type: 'Appearance',
             },
             {
                 name: 'Komentar',
                 label: 'notification_comment',
+                type: 'Notification',
             },
             {
                 name: 'Mengikuti Anda',
                 label: 'notification_following',
+                type: 'Notification',
             },
             {
                 name: 'Suka',
                 label: 'notification_like',
+                type: 'Notification',
             }
         ]
     })

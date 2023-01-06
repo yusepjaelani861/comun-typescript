@@ -81,6 +81,7 @@ model Config {
   id Int @id @default(autoincrement())
   label String
   name String
+  type String?
   is_on_notification Boolean @default(true)
   is_on_view Boolean @default(false)
   created_at DateTime @default(now())
@@ -299,6 +300,7 @@ model GroupPermission {
   slug String
   description String?
   status Boolean @default(false)
+  label String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   group Group @relation(fields: [group_id], references: [id])
@@ -307,7 +309,7 @@ model GroupPermission {
 model GroupForm {
   id Int @id @default(autoincrement())
   group_id Int
-  name String
+  name String?
   description String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -368,7 +370,7 @@ model GroupMemberForm {
   value String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  group_member GroupMember @relation(fields: [group_member_id], references: [id])
+  group_member GroupMember @relation(fields: [group_member_id], references: [id], onDelete: Cascade)
   group_form GroupForm @relation(fields: [group_form_id], references: [id])
 }
 
