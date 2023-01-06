@@ -43,13 +43,13 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
         const search_all_tag_p = post.body.filter((item: any) => item.tagName === 'p');
         const search_figure = post.body.filter((item: any) => item.tagName === 'figure');
         let search_attributes_aspect_ratio;
+        search_attributes_aspect_ratio = null;
         if (search_figure && search_figure.length > 0) {
             const search_img = search_figure?.filter((item: any) => item.children[0].tagName === 'img');
             search_attributes_aspect_ratio = search_img[0].children.filter(
                 (res: any) => res.type == "element" && res.tagName == "img"
               )[0].attributes[3].value
         }
-        search_attributes_aspect_ratio = null;
 
         post.attachments_data_aspect_ratio = search_attributes_aspect_ratio
 

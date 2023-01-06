@@ -503,10 +503,26 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
         if (typeof search_img !== 'undefined' && search_img.length > 0 && post_attachments === null) {
             post_attachments = search_img.map((item: any) => item.children[0].attributes[0].value);
         }
+
+        let search_first_figure = body_to_json?.find(
+            (res: any) => res.type == "element" && res.tagName == "figure"
+        );
+
+        if (typeof search_first_figure !== "undefined") {
+            let search_first_image = search_first_figure.children.find(
+                (res: any) => res.type == "element" && res.tagName == "img"
+            );
+
+            if (typeof search_first_image !== "undefined") {
+                post_attachments = search_first_image.attributes.find(
+                    (res: any) => res.key == "src"
+                ).value;
+            }
+        }
     }
 
     post_slug = random_slug;
-    // try {
+    try {
     await prisma.$transaction(async (prisma) => {
         post = await prisma.post.create({
             data: {
@@ -536,7 +552,7 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
                             res.attributes.find((res: any) => res.value == "hashtag")
                     )
             );
-    
+
             if (typeof search_class_hastag !== 'undefined') {
                 await Promise.all(search_class_hastag.children.map(async (res: any) => {
                     if (res.children) {
@@ -547,7 +563,7 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
                                     name: res.content
                                 }
                             })
-    
+
                             if (!tag) {
                                 let slug_Tag = res.content
                                     .replace(/[^\w ]/g, "")
@@ -563,7 +579,7 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
                                         "-" +
                                         i++;
                                 }
-    
+
                                 tag = await prisma.tag.create({
                                     data: {
                                         name: res.content,
@@ -571,7 +587,7 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
                                     }
                                 })
                             }
-    
+
                             await prisma.postTag.create({
                                 data: {
                                     tag_id: tag.id,
@@ -641,9 +657,9 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
     // posts.is_upvote = false;
 
     return res.status(200).json(new sendResponse(posts, 'Berhasil membuat postingan', {}, 200));
-    // } catch (error: any) {
-    //     return next(new sendError('Gagal membuat post', error, 'PROCESS_ERROR', 400));
-    // }
+    } catch (error: any) {
+        return next(new sendError('Gagal membuat post', error, 'PROCESS_ERROR', 400));
+    }
 })
 
 export const updatePost = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
@@ -683,13 +699,32 @@ export const updatePost = asyncHandler(async (req: any, res: Response, next: Nex
     let paragraph: any, body_to_json: any, search_img: any;
 
     if (post_body) {
-        body_to_json = parse(req.body.post_body);
+        body_to_json = parse(post_body);
 
         paragraph = body_to_json.filter((item: any) => item.tagName === 'p');
 
-        search_img = body_to_json.filter((item: any) => item.tagName === 'img');
+        const search_figure = body_to_json?.filter((item: any) => item.tagName === 'figure');
+        const search_img = search_figure?.filter((item: any) => item.children[0].tagName === 'img');
 
-        post_attachments = search_img.map((item: any) => item.attributes[0].value);
+        if (typeof search_img !== 'undefined' && search_img.length > 0 && post_attachments === null) {
+            post_attachments = search_img.map((item: any) => item.children[0].attributes[0].value);
+        }
+
+        let search_first_figure = body_to_json?.find(
+            (res: any) => res.type == "element" && res.tagName == "figure"
+        );
+
+        if (typeof search_first_figure !== "undefined") {
+            let search_first_image = search_first_figure.children.find(
+                (res: any) => res.type == "element" && res.tagName == "img"
+            );
+
+            if (typeof search_first_image !== "undefined") {
+                post_attachments = search_first_image.attributes.find(
+                    (res: any) => res.key == "src"
+                ).value;
+            }
+        }
     }
 
     try {
