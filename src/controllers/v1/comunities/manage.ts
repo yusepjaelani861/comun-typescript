@@ -92,7 +92,7 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
     if (!errors.isEmpty()) {
         return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
     }
-    
+
     const { slug } = req.params;
     const {
         answer,
@@ -291,7 +291,11 @@ export const listComunity = asyncHandler(async (req: any, res: Response, next: N
                 group: {
                     include: {
                         group_posts: true,
-                        group_members: true,
+                        group_members: {
+                            where: {
+                                status: 'joined'
+                            }
+                        },
                     }
                 }
             },
@@ -558,6 +562,7 @@ export const listAnswerFormJoin = asyncHandler(async (req: any, res: Response, n
         where: {
             group_member: {
                 group_id: group.id,
+                status: 'joined'
             },
         },
         include: {

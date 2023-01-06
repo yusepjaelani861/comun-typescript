@@ -40,6 +40,7 @@ export const kickMember = asyncHandler(async (req: any, res: Response, next: Nex
     const group_member = await prisma.groupMember.findFirst({
         where: {
             id: group_member_id,
+            status: 'joined'
         }
     })
 

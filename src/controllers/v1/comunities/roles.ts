@@ -166,7 +166,11 @@ export const listRolePerComunity = asyncHandler(async (req: any, res: Response, 
                         description: true,
                     }
                 },
-                group_members: true
+                group_members: {
+                    where: {
+                        status: 'joined'
+                    }
+                }
             }
         })
 
@@ -198,7 +202,11 @@ export const listRolePerComunity = asyncHandler(async (req: any, res: Response, 
     const group_roles = await prisma.groupRole.findMany({
         where: where,
         include: {
-            group_members: true
+            group_members: {
+                where: {
+                    status: 'joined'
+                }
+            }
         }
     })
 

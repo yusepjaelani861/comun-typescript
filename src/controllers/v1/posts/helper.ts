@@ -13,7 +13,11 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
             id: post.group_id
         },
         include: {
-            group_members: true,
+            group_members: {
+                where: {
+                    status: 'joined'
+                }
+            },
         }
     })
 

@@ -37,6 +37,9 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
             group_members: {
                 include: {
                     group_role: true,
+                },
+                where: {
+                    status: 'joined'
                 }
             },
             group_posts: true,
