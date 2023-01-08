@@ -46,9 +46,9 @@ Use the package manager [npm](https://docs.npmjs.com/downloading-and-installing-
 
 ```bash
 npm install
-npm run build
 npm run migration
 npm run seed
+npm run build
 npm run start
 ```
 
