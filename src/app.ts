@@ -26,7 +26,7 @@ app.use(cors({
     credentials: true
 }));
 
-import authentication from './routes/v1/auth/authentication';
+import auth from './routes/v1/auth';
 import user from './routes/v1/users';
 import comunities from './routes/v1/comunities';
 import post from './routes/v1/posts';
@@ -35,7 +35,7 @@ import notification from './routes/v1/notifications';
 import payment from './routes/v1/payments';
 import analytic from './routes/v1/analytics';
 
-app.use('/api/v1/auth', authentication);
+app.use('/api/v1/auth', auth);
 app.use('/api/v1/user', user);
 app.use('/api/v1/group', comunities);
 app.use('/api/v1/post', post);
