@@ -6,6 +6,7 @@ import { rand } from "../../libraries/helper";
 import fs from "fs";
 import md5 from "md5";
 import { encrypt } from "../../libraries/encrypt";
+import Randomstring from "randomstring";
 
 export const uploadImage = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -25,7 +26,7 @@ export const uploadImage = asyncHandler(async (req: any, res: Response, next: Ne
     const extension = image.name.split('.').pop()
     const filename = 'image_' + rand()
     const filename_with_ext = filename + '.' + extension;
-    const upload_url = '/src/public/images/' + type + '/';
+    const upload_url = '/public/images/' + type + '/';
     const upload_full_path = process.cwd() + upload_url;
     const filesize_in_mb = image.size / (1024 * 1024);
 
@@ -46,7 +47,8 @@ export const uploadImage = asyncHandler(async (req: any, res: Response, next: Ne
     );
 
     let data = {
-        url: myUrl + '/public/images/' + type + '/' + filename_with_ext,
+        url: 
+         + '/public/images/' + type + '/' + filename_with_ext,
         path: upload_url,
         filename: filename,
         filesize: filesize_in_mb,
@@ -58,11 +60,6 @@ export const uploadImage = asyncHandler(async (req: any, res: Response, next: Ne
 })
 
 export const uploadVideo = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
-    }
-
     const {
         name,
         currentChunkIndex,
@@ -79,7 +76,6 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
 
     const upload_url = '/public/videos/'
     const upload_path = process.cwd() + upload_url;
-
 
     const filename = md5(Randomstring.generate(20)).substr(0, 6);
     const filenamewithext = filename + '.' + ext;
@@ -100,8 +96,9 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
 
     fs.appendFileSync(upload_path + tmpFilename, buffer);
 
+    let myUrl: string = req.protocol + '://' + req.get('host');
     let results: any = {
-        url: process.env.APP_HOST + upload_url + filenamewithext,
+        url: myUrl + upload_url + filenamewithext,
         path: upload_url,
         filename,
         filename_with_ext: filenamewithext,
