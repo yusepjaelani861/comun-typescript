@@ -7,6 +7,7 @@ import fs from "fs";
 import md5 from "md5";
 import { encrypt } from "../../libraries/encrypt";
 import Randomstring from "randomstring";
+import sharp from "sharp";
 
 export const uploadImage = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -47,8 +48,7 @@ export const uploadImage = asyncHandler(async (req: any, res: Response, next: Ne
     );
 
     let data = {
-        url: 
-         + '/public/images/' + type + '/' + filename_with_ext,
+        url: myUrl + '/public/images/' + type + '/' + filename_with_ext,
         path: upload_url,
         filename: filename,
         filesize: filesize_in_mb,
@@ -115,6 +115,42 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
         results.status = 'progress';
         return res.json(new sendResponse(results, 'Success uploading videos', [], 200))
     }
+})
+
+export const viewImages = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+    let { type, slug } = req.params;
+    
+    const filepath = '/public/images/' + type + '/' + slug + '.webp';
+    const fullpath = process.cwd() + filepath;
+
+    if (fs.existsSync(fullpath)) {
+        const webp = fs.readFileSync(fullpath);
+
+        res.writeHead(200, {
+            'Content-Type': 'image/webp',
+            'Content-Length': webp.length,
+        });
+
+        return res.end(webp);
+    }
+
+    const filepath2 = '/public/images/' + type + '/' + slug;
+    const fullpath2 = process.cwd() + filepath2;
+
+    const image = sharp(fullpath2);
+
+    const webp = await image.webp().toBuffer();
+
+    const namewebp = slug + '.webp';
+
+    fs.writeFileSync(process.cwd() + '/public/images/' + type + '/' + namewebp, webp);
+
+    res.writeHead(200, {
+        'Content-Type': 'image/webp',
+        'Content-Length': webp.length,
+    });
+
+    return res.end(webp);
 })
 
 export const validation = (method: string) => {
