@@ -120,7 +120,7 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
 export const viewImages = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     let { type, slug } = req.params;
     
-    const filepath = '/public/images/' + type + '/' + slug + '.webp';
+    const filepath = '/public/images/webp/' + type + '/' + slug + '.webp';
     const fullpath = process.cwd() + filepath;
 
     if (fs.existsSync(fullpath)) {
@@ -143,7 +143,13 @@ export const viewImages = asyncHandler(async (req: any, res: Response, next: Nex
 
     const namewebp = slug + '.webp';
 
-    fs.writeFileSync(process.cwd() + '/public/images/' + type + '/' + namewebp, webp);
+    if (!fs.existsSync(process.cwd() + '/public/images/webp/' + type)) {
+        fs.mkdir(process.cwd() + '/public/images/webp/' + type, { recursive: true }, (err) => {
+            if (err) throw err;
+        })
+    }
+
+    fs.writeFileSync(process.cwd() + '/public/images/webp/' + type + '/' + namewebp, webp);
 
     res.writeHead(200, {
         'Content-Type': 'image/webp',
