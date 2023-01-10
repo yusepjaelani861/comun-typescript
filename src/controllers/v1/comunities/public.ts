@@ -78,11 +78,11 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
                 group_role_id: member_role?.group_role_id
             },
         })
-    
+
         member_role_permission.forEach((item: any) => {
             if (item?.status === true) {
                 let dataNav = navigation(item?.slug);
-    
+
                 if (dataNav.length > 0) {
                     group.has_kelola = true;
                 }
@@ -98,7 +98,7 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
 
     const formulir: any = groupPermission.find((item: any) => item.slug === 'formulir_saat_bergabung');
     group.has_formulir = formulir.status
-    
+
     group.is_owner = group.group_members.find((member: any) => member.user_id === req.user?.id && member.group_role.slug === 'owner') ? true : false;
     group.total_member = group.group_members.length;
     group.total_post = group.group_posts.length;
@@ -110,21 +110,21 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
 })
 
 export const listAllComunity = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
-    let { search, page = 1, limit = 10 } = req.query;
+    let { search, page = 1, limit = 10, username } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
 
-    let groups: any, orderBy : Array<any> = [];
+    let groups: any, orderBy: Array<any> = [], where: any = {};
 
     if (Object.keys(req.query).length > 0) {
         Object.keys(req.query).forEach((filter, index) => {
             let key_and_op = filter.split('.');
-            
+
             if (key_and_op.length > 1) {
                 let key = key_and_op[0];
                 let op = key_and_op[1];
                 let value = req.query[filter];
-                
+
                 if (key == 'sort') {
                     orderBy.push({
                         [op]: value
@@ -134,53 +134,63 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
         })
     }
 
+    if (username) {
+        const user = await prisma.user.findFirst({
+            where: {
+                username: req.query.username,
+            }
+        })
+
+        if (!user) {
+            return next(new sendError('User tidak ditemukan', [], 'NOT_FOUND', 404));
+        }
+
+        where = {
+            ...where,
+            group_members: {
+                some: {
+                    user_id: user.id,
+                    status: 'joined'
+                }
+            }
+        }
+    }
+
     const total = await prisma.group.count();
     if (search) {
-        groups = await prisma.group.findMany({
-            where: {
-                OR: [
-                    {
-                        name: {
-                            contains: search.toLowerCase(),
-                            mode: 'insensitive'
-                        }
-                    },
-                    {
-                        slug: {
-                            contains: search.toLowerCase()
-                        }
-                    }
-                ]
-            },
-            include: {
-                group_members: {
-                    include: {
-                        group_role: true,
+        where = {
+            ...where,
+            OR: [
+                {
+                    name: {
+                        contains: search.toLowerCase(),
+                        mode: 'insensitive'
                     }
                 },
-                group_posts: true,
-                group_roles: true,
-            },
-            orderBy: orderBy,
-            skip: (page - 1) * limit,
-            take: limit,
-        })
-    } else {
-        groups = await prisma.group.findMany({
-            include: {
-                group_members: {
-                    include: {
-                        group_role: true,
+                {
+                    slug: {
+                        contains: search.toLowerCase()
                     }
-                },
-                group_posts: true,
-                group_roles: true,
-            },
-            orderBy: orderBy,
-            skip: (page - 1) * limit,
-            take: limit,
-        })
+                }
+            ],
+        }
     }
+
+    groups = await prisma.group.findMany({
+        where: where,
+        include: {
+            group_members: {
+                include: {
+                    group_role: true,
+                }
+            },
+            group_posts: true,
+            group_roles: true,
+        },
+        orderBy: orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+    })
 
     groups = await Promise.all(groups.map(async (group: any) => {
         const my_member = group.group_members.find((member: any) => member.user_id === req.user?.id);
