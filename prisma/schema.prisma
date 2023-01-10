@@ -31,8 +31,8 @@ model User {
   updated_at DateTime @updatedAt
   provider_id String?
   provider String?
-  followers UserFollow[] @relation("follower_user")
-  followings UserFollow[] @relation("user")
+  followers UserFollow[] @relation("user")
+  followings UserFollow[] @relation("follower_user")
   posts Post[]
   post_votes PostVoteMember[]
   post_vote_options PostVoteOption[]
