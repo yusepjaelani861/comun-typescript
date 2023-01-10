@@ -7,6 +7,9 @@ import { sendEmail } from "../../../libraries/nodemailer";
 import { generate_otp } from "../../../libraries/helper";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
+import fs from 'fs';
+import path from "path";
 
 const prisma = new PrismaClient()
 const jwt_secret = process.env.JWT_SECRET || 'secret';
@@ -145,6 +148,24 @@ export const verify_and_update = asyncHandler(async (req: Request, res: Response
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
+    const urlGenerateAvatar = 'https://api.multiavatar.com/' + username + '.svg';
+    const imageAvatar = await axios.get(urlGenerateAvatar, { responseType: 'arraybuffer' });
+    
+    const avatarName = username + '.svg';
+    const avatarPath = path.join(__dirname, '../../../../public/avatar/' + avatarName);
+    const myUrl = req.protocol + '://' + req.get('host');
+    const avatarUrl = myUrl + '/avatar/' + avatarName;
+
+    if (!fs.existsSync(path.join(__dirname, '../../../../public/avatar/'))) {
+        fs.mkdirSync(path.join(__dirname, '../../../../public/avatar/'));
+    }
+
+    fs.writeFile(avatarPath, imageAvatar.data, (err) => {
+        if (err) {
+            console.log(err);
+        }
+    })
+
     var user = await prisma.user.update({
         where: {
             id: user_id
@@ -153,7 +174,7 @@ export const verify_and_update = asyncHandler(async (req: Request, res: Response
             name: username,
             username: username,
             password: hash,
-            avatar: avatar ? avatar : `https://ui-avatars.com/api/?name=${username}&background=0D8ABC&color=fff&size=128`,
+            avatar: avatar ? avatar : avatarUrl,
             otp: null,
             otp_created_at: null
         }

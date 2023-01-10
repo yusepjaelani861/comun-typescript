@@ -8,6 +8,9 @@ import { generate_otp } from "../../../libraries/helper";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { stringify } from "querystring";
+import axios from "axios";
+import path from "path";
+import fs from 'fs';
 
 const prisma = new PrismaClient()
 const jwt_secret = process.env.JWT_SECRET || 'secret';
@@ -21,7 +24,7 @@ export const loginGoogle = asyncHandler(async (req: Request, res: Response, next
     if (client_id === undefined || client_secret === undefined || redirect_uri === undefined) {
         return next(new sendError('Google client id, secret or redirect uri not found', [], 'NOT_FOUND', 404));
     }
-    
+
     const stringFieldParams = stringify({
         client_id: client_id,
         redirect_uri: redirect_uri,
@@ -45,7 +48,7 @@ export const callbackGoogle = asyncHandler(async (req: Request, res: Response, n
         return next(new sendError('Google client id, secret or redirect uri not found', [], 'NOT_FOUND', 404));
     }
 
-        const { code } = req.query
+    const { code } = req.query
 
     if (!code) {
         return next(new sendError('Code not found', [], 'NOT_FOUND', 404));
@@ -100,13 +103,31 @@ export const callbackGoogle = asyncHandler(async (req: Request, res: Response, n
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(name, salt);
 
+        const urlGenerateAvatar = 'https://api.multiavatar.com/' + name.replace(' ', '_') + '.svg';
+        const imageAvatar = await axios.get(urlGenerateAvatar, { responseType: 'arraybuffer' });
+
+        const avatarName = name.replace(' ', '_') + '.svg';
+        const avatarPath = path.join(__dirname, '../../../../public/avatar/' + avatarName);
+        const myUrl = req.protocol + '://' + req.get('host');
+        const avatarUrl = myUrl + '/avatar/' + avatarName;
+
+        if (!fs.existsSync(path.join(__dirname, '../../../../public/avatar/'))) {
+            fs.mkdirSync(path.join(__dirname, '../../../../public/avatar/'));
+        }
+
+        fs.writeFile(avatarPath, imageAvatar.data, (err) => {
+            if (err) {
+                console.log(err);
+            }
+        })
+
         user = await prisma.user.create({
             data: {
                 name: name,
                 username: name,
                 email: email,
                 password: hash,
-                avatar: picture ? picture : `https://ui-avatars.com/api/?name=${name}&background=0D8ABC&color=fff&size=128`,
+                avatar: picture ? picture : avatarUrl,
                 otp: null,
                 otp_created_at: null
             }
