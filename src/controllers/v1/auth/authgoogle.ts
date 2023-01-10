@@ -2,9 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import asyncHandler from "../../../middleware/async";
 import { PrismaClient } from '@prisma/client';
 import { sendResponse, sendError } from "../../../libraries/rest";
-import { body, validationResult } from 'express-validator';
-import { sendEmail } from "../../../libraries/nodemailer";
-import { generate_otp } from "../../../libraries/helper";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { stringify } from "querystring";
@@ -103,7 +100,7 @@ export const callbackGoogle = asyncHandler(async (req: Request, res: Response, n
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(name, salt);
 
-        const urlGenerateAvatar = 'https://api.multiavatar.com/' + name.replace(' ', '_') + '.svg';
+        const urlGenerateAvatar = 'https://api.multiavatar.com/' + name.replace(' ', '_') + '.png?apikey=' + process.env.MULTIAVATAR_API_KEY;
         const imageAvatar = await axios.get(urlGenerateAvatar, { responseType: 'arraybuffer' });
 
         const avatarName = name.replace(' ', '_') + '.svg';

@@ -148,7 +148,7 @@ export const verify_and_update = asyncHandler(async (req: Request, res: Response
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
-    const urlGenerateAvatar = 'https://api.multiavatar.com/' + username + '.svg';
+    const urlGenerateAvatar = 'https://api.multiavatar.com/' + username + '.png?apikey=' + process.env.MULTIAVATAR_API_KEY;
     const imageAvatar = await axios.get(urlGenerateAvatar, { responseType: 'arraybuffer' });
     
     const avatarName = username + '.svg';
