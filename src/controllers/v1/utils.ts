@@ -117,8 +117,75 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
     }
 })
 
+const calculateAspectRation = (sourceWidth: number, sourceHeight: number, width: number, height: number) => {
+    let aspectRatio = 1;
+    if (width && !height) {
+        aspectRatio = width / sourceWidth;
+    } else if (height && !width) {
+        aspectRatio = height / sourceHeight;
+    } else if (width && height) {
+        aspectRatio = width / sourceWidth;
+    }
+
+    return aspectRatio;
+}
+
 export const viewImages = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     let { type, slug } = req.params;
+    let { width, height } = req.query;
+
+    let webp;
+    let namepath;
+    if (width || height) {
+        namepath = process.cwd() + '/public/images/webp/' + type + '/' + slug;
+
+        if (width) {
+            namepath = process.cwd() + '/public/images/webp/' + type + '/' + slug + '_' + width + '.webp';
+        }
+
+        if (height) {
+            namepath = process.cwd() + '/public/images/webp/' + type + '/' + slug + '_' + height + '.webp';
+        }
+
+        if (fs.existsSync(namepath)) {
+            res.writeHead(200, {
+                'Content-Type': 'image/webp'
+            });
+
+            webp = fs.readFileSync(namepath);
+
+            return res.end(webp);
+        }
+
+        const image = sharp(process.cwd() + '/public/images/' + type + '/' + slug)
+        const metadata = await image.metadata();
+        const imgHeight = metadata.height || 0;
+        const imgWidth = metadata.width || 0;
+
+        const ratio = calculateAspectRation(imgHeight, imgWidth, parseInt(width), parseInt(height));
+
+        width = imgWidth * ratio;
+        height = imgHeight * ratio;
+
+        webp = await image.webp().resize(parseInt(width), parseInt(height)).toBuffer();
+
+        if (!fs.existsSync(process.cwd() + '/public/images/webp/' + type)) {
+            fs.mkdirSync(process.cwd() + '/public/images/webp/' + type);
+        }
+
+        fs.writeFileSync(namepath, webp);
+
+        res.writeHead(200, {
+            'Content-Type': 'image/webp',
+        })
+
+        res.end(webp);
+        
+        return res.json({
+            width: imgWidth,
+            height: imgHeight,
+        })
+    }
     
     const filepath = '/public/images/webp/' + type + '/' + slug + '.webp';
     const fullpath = process.cwd() + filepath;
@@ -139,7 +206,7 @@ export const viewImages = asyncHandler(async (req: any, res: Response, next: Nex
 
     const image = sharp(fullpath2);
 
-    const webp = await image.webp().toBuffer();
+    webp = await image.webp().toBuffer();
 
     const namewebp = slug + '.webp';
 
