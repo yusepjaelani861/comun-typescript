@@ -48,8 +48,32 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
         return next(new sendError('Anda belum bergabung dengan group', [], 'NOT_FOUND', 404));
     }
 
+    let post_attachments;
     if (post_body && post_body.length > 0) {
         body_to_json = parse(post_body);
+
+        const search_figure = body_to_json?.filter((item: any) => item.tagName === 'figure');
+        const search_img = search_figure?.filter((item: any) => item.children[0].tagName === 'img');
+
+        if (typeof search_img !== 'undefined' && search_img.length > 0 && post_attachments === null) {
+            post_attachments = search_img.map((item: any) => item.children[0].attributes[0].value);
+        }
+
+        let search_first_figure = body_to_json?.find(
+            (res: any) => res.type == "element" && res.tagName == "figure"
+        );
+
+        if (typeof search_first_figure !== "undefined") {
+            let search_first_image = search_first_figure.children.find(
+                (res: any) => res.type == "element" && res.tagName == "img"
+            );
+
+            if (typeof search_first_image !== "undefined") {
+                post_attachments = search_first_image.attributes.find(
+                    (res: any) => res.key == "src"
+                ).value;
+            }
+        }
     }
 
     slug = post_title.toLowerCase().replace(/[^\w ]/g, "").replace(/\s+/g, "-");
@@ -87,6 +111,7 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
             seo_title: post_title,
             content_type: 'voting',
             status: post_status,
+            attachments: post_attachments ? post_attachments : null
         }
     })
 
