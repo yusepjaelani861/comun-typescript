@@ -59,6 +59,7 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
                 post.body_formatted = ""
             }
     }
+    post.seo_description = post.body_formatted.replace(/(<([^>]+)>)/gi, "").substring(0, 160);
     post.url = url;
     post.created_at_formatted = moment(post.created_at).fromNow();
     post.updated_at_formatted = moment(post.updated_at).fromNow();
