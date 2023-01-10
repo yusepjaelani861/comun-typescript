@@ -63,6 +63,19 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
         i++;
     }
 
+    let post_status: any;
+    post_status = 'published';
+    const groupPermission = await prisma.groupPermission.findFirst({
+        where: {
+            group_id: group.id,
+            slug: 'persetujuan_posting'
+        }
+    })
+
+    if (groupPermission?.status === true) {
+        post_status = 'pending';
+    }
+
     const post = await prisma.post.create({
         data: {
             title: post_title,
@@ -73,7 +86,7 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
             seo_description: post_body ? post_body.substring(0, 160) : '',
             seo_title: post_title,
             content_type: 'voting',
-            status: group.privacy == 'public' ? 'published' : 'pending',
+            status: post_status,
         }
     })
 
