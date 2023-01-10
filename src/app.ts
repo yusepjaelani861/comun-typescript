@@ -1,10 +1,9 @@
-import express, { ErrorRequestHandler, Express, NextFunction, Request, Response } from 'express';
+import express, { Express, Request, Response } from 'express';
 import { sendError } from './libraries/rest';
 import dotenv from 'dotenv';
 import http from 'http';
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
-// import 'express-async-errors';
 import errorHandler from './middleware/error';
 
 dotenv.config();
@@ -18,6 +17,7 @@ app.use(fileUpload());
 
 import { viewImages } from './controllers/v1/utils';
 app.get('/public/images/:type/:slug', viewImages);
+app.use('/avatar', express.static('public/avatar'));
 
 // app.use('/public/images/avatar', express.static('public/images/avatar'));
 // app.use('/public/images/post', express.static('public/images/post'));
