@@ -48,8 +48,8 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
         return next(new sendError('Anda belum bergabung dengan group', [], 'NOT_FOUND', 404));
     }
 
-    if (post_body) {
-        body_to_json = stringify(post_body);
+    if (post_body && post_body.length > 0) {
+        body_to_json = parse(post_body);
     }
 
     slug = post_title.toLowerCase().replace(/[^\w ]/g, "").replace(/\s+/g, "-");
@@ -66,7 +66,7 @@ export const createVotePost = asyncHandler(async (req: any, res: Response, next:
     const post = await prisma.post.create({
         data: {
             title: post_title,
-            body: post_body ? body_to_json : JSON.stringify([]),
+            body: post_body ? JSON.stringify(body_to_json) : JSON.stringify([]),
             slug: slug,
             group_id: post_group_id,
             user_id: req.user?.id,

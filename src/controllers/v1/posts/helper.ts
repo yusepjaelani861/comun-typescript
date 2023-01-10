@@ -40,8 +40,7 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
     post.body_formatted = ""
     post.body = JSON.parse(post.body)
     if (post.body && post.body.length > 0) {
-        const search_all_tag_p = post.body.filter((item: any) => item.tagName === 'p');
-        const search_figure = post.body.filter((item: any) => item.tagName === 'figure');
+        const search_figure = post.body?.filter((item: any) => item.tagName === 'figure');
         let search_attributes_aspect_ratio;
         search_attributes_aspect_ratio = null;
         if (search_figure && search_figure.length > 0) {
@@ -53,11 +52,12 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
 
         post.attachments_data_aspect_ratio = search_attributes_aspect_ratio
 
-        if (search_all_tag_p.length > 0) {
-            post.body_formatted = stringify(search_all_tag_p);
-        } else {
-            post.body_formatted = ""
-        }
+            const search_all_tag_p = post.body?.filter((item: any) => item.tagName === 'p');
+            if (search_all_tag_p.length > 0) {
+                post.body_formatted = stringify(search_all_tag_p);
+            } else {
+                post.body_formatted = ""
+            }
     }
     post.url = url;
     post.created_at_formatted = moment(post.created_at).fromNow();
