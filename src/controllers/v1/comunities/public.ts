@@ -42,7 +42,13 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
                     status: 'joined'
                 }
             },
-            group_posts: true,
+            group_posts: {
+                where: {
+                    content_type: {
+                        not: 'answer_question'
+                    }
+                }
+            },
             group_roles: true,
         }
     })
