@@ -134,6 +134,15 @@ export const viewImages = asyncHandler(async (req: any, res: Response, next: Nex
     let { type, slug } = req.params;
     let { width, height } = req.query;
 
+    const extension = slug.split('.').pop();
+    if (extension === 'webp') {
+        if (fs.existsSync(process.cwd() + '/public/images/' + type + '/' + slug)) {
+            res.end(fs.readFileSync(process.cwd() + '/public/images/' + type + '/' + slug));
+        }
+
+        return res.end();
+    }
+
     let webp;
     let namepath;
     if (width || height) {
