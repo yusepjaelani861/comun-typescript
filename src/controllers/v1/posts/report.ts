@@ -175,7 +175,6 @@ export const reports = asyncHandler(async (req: any, res: Response, next: NextFu
                             }
                         }
                     },
-                    post_downvotes: true,
                     post_vote_options: {
                         include: {
                             post_vote_members: {

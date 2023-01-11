@@ -256,6 +256,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                         name: true,
                         username: true,
                         avatar: true,
+                        followers: true,
                     }
                 },
                 group: {
@@ -280,7 +281,6 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                         }
                     }
                 },
-                post_downvotes: true,
                 post_vote_options: {
                     include: {
                         post_vote_members: {
@@ -322,6 +322,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                         name: true,
                         username: true,
                         avatar: true,
+                        followers: true,
                     }
                 },
                 group: {
@@ -346,7 +347,6 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                         }
                     }
                 },
-                post_downvotes: true,
                 post_vote_options: {
                     include: {
                         post_vote_members: {
@@ -396,7 +396,6 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                 },
                 post_comments: true,
                 post_upvotes: true,
-                post_downvotes: true,
                 post_vote_options: true,
             },
         });
@@ -613,6 +612,7 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
                     name: true,
                     username: true,
                     avatar: true,
+                    followers: true,
                 }
             },
             group: {
@@ -625,7 +625,6 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
             },
             post_comments: true,
             post_upvotes: true,
-            post_downvotes: true,
             post_vote_options: true,
         },
     })
@@ -764,7 +763,6 @@ export const updatePost = asyncHandler(async (req: any, res: Response, next: Nex
                 },
                 post_comments: true,
                 post_upvotes: true,
-                post_downvotes: true,
                 post_vote_options: true,
             },
         })
@@ -772,8 +770,8 @@ export const updatePost = asyncHandler(async (req: any, res: Response, next: Nex
         posts.created_at_formatted = moment(posts.created_at).fromNow();
         posts.updated_at_formatted = moment(posts.updated_at).fromNow();
         posts.post_comments_count = posts.post_comments.length;
-        posts.post_upvotes_count = posts.post_upvotes.length;
-        posts.post_downvotes_count = posts.post_downvotes.length;
+        posts.post_upvotes_count = posts.post_upvotes.filter((item: any) => item.type === 'upvote').length;
+        posts.post_downvotes_count = post.post_upvotes.filter((item: any) => item.type === 'downvote').length;
         posts.post_vote_options_count = posts.post_vote_options.length;
         posts.is_downvote = false;
         posts.is_upvote = false;

@@ -249,7 +249,6 @@ export const listPostByTag = asyncHandler(async (req: any, res: Response, next: 
             },
             post_comments: true,
             post_upvotes: true,
-            post_downvotes: true,
             post_vote_options: true,
         },
         orderBy: orderBy.length > 0 ? orderBy : [

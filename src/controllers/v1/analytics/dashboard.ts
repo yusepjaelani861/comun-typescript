@@ -108,9 +108,10 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
         item.downvote_post = 0;
         item.comment_post = 0;
 
-        const upvote = await prisma.postUpvote.count({
+        const upvote = await prisma.postVotes.count({
             where: {
                 post_id: item.id,
+                type: 'upvote'
                 // created_at: {
                 //     gte: new Date(from_date),
                 //     lte: new Date(to_date + ' 23:59:59')
@@ -119,9 +120,10 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
             }
         })
 
-        const downvote = await prisma.postDownvote.count({
+        const downvote = await prisma.postVotes.count({
             where: {
                 post_id: item.id,
+                type: 'downvote'
                 // created_at: {
                 //     gte: new Date(from_date),
                 //     lte: new Date(to_date + ' 23:59:59')
@@ -227,9 +229,10 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
             item.downvote_post = 0;
             item.comment_post = 0;
 
-            const upvote = await prisma.postUpvote.count({
+            const upvote = await prisma.postVotes.count({
                 where: {
                     post_id: item.id,
+                    type: 'upvote'
                     // created_at: {
                     //     gte: convertDate,
                     //     lte: new Date(convertDate.getTime() + 86400000)
@@ -237,9 +240,10 @@ export const analytics = asyncHandler(async (req: any, res: Response, next: Next
                 }
             })
 
-            const downvote = await prisma.postDownvote.count({
+            const downvote = await prisma.postVotes.count({
                 where: {
                     post_id: item.id,
+                    type: 'downvote'
                     // created_at: {
                     //     gte: convertDate,
                     //     lte: new Date(convertDate.getTime() + 86400000)

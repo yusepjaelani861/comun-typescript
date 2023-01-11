@@ -75,7 +75,6 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
                 },
                 post_comments: true,
                 post_upvotes: true,
-                post_downvotes: true,
                 post_vote_options: true,
             },
             orderBy: orderBy.length > 0 ? orderBy : [
@@ -114,7 +113,6 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
                 }
             },
             post_comment_upvotes: true,
-            post_comment_downvotes: true,
         },
         orderBy: orderBy.length > 0 ? orderBy : [
             {
@@ -146,41 +144,36 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
                     }
                 },
                 post_comment_upvotes: true,
-                post_comment_downvotes: true,
             },
         })
 
         await Promise.all(replies.map(async (item: any) => {
-            item.upvote_count = item.post_comment_upvotes.length;
-            item.downvote_count = item.post_comment_downvotes.length;
+            item.upvote_count = item.post_comment_upvotes.filter((item: any) => item.type === 'upvote').length;
+            item.downvote_count = item.post_comment_upvotes.filter((item: any) => item.type === 'downvote').length;
             item.is_upvote = false;
             item.is_downvote = false;
             if (req.user) {
-                item.is_upvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id);
-                item.is_downvote = item.post_comment_downvotes.some((item: any) => item.user_id === req.user.id);
+                item.is_upvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id && item.type === 'upvote') ? true : false;
+                item.is_downvote = item.post_comment_downvotes.some((item: any) => item.user_id === req.user.id && item.type === 'downvote') ? true : false;
             }
             item.created_at_formatted = moment(item.created_at).fromNow();
 
             delete item.post_comment_upvotes;
-            delete item.post_comment_downvotes;
         }))
 
         item.reply = replies;
         item.reply_count = replies.length;
-        item.upvote_count = item.post_comment_upvotes.length;
-        item.downvote_count = item.post_comment_downvotes.length;
+        item.upvote_count = item.post_comment_upvotes.filter((item: any) => item.type === 'upvote').length;
+        item.downvote_count = item.post_comment_upvotes.filter((item: any) => item.type === 'downvote').length;
         item.is_upvote = false;
         item.is_downvote = false;
         if (req.user) {
-            item.is_upvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id);
-            item.is_downvote = item.post_comment_downvotes.some((item: any) => item.user_id === req.user.id);
+            item.is_upvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id && item.type === 'upvote') ? true : false;
+            item.is_downvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id && item.type === 'downvote') ? true : false;
         }
         item.created_at_formatted = moment(item.created_at).fromNow();
 
         delete item.post_comment_upvotes;
-        delete item.post_comment_downvotes;
-
-        
     }));
 
     return res.json(new sendResponse(comments, 'Berhasil mengambil data', pagination(page, limit, total), 200));
@@ -243,24 +236,22 @@ export const createComment = asyncHandler(async (req: any, res: Response, next: 
                 }
             },
             post_comment_upvotes: true,
-            post_comment_downvotes: true,
         }
     })
 
     comment.reply = [];
     comment.reply_count = 0;
-    comment.upvote_count = comment.post_comment_upvotes.length;
-    comment.downvote_count = comment.post_comment_downvotes.length;
+    comment.upvote_count = comment.post_comment_upvotes.filter((item: any) => item.type === 'upvote').length;
+    comment.downvote_count = comment.post_comment_upvotes.filter((item: any) => item.type === 'downvote').length;
     comment.is_upvote = false;
     comment.is_downvote = false;
     if (req.user.id) {
-        comment.is_upvote = comment.post_comment_upvotes.some((item: any) => item.user_id === req.user.id);
-        comment.is_downvote = comment.post_comment_downvotes.some((item: any) => item.user_id === req.user.id);
+        comment.is_upvote = comment.post_comment_upvotes.some((item: any) => item.user_id === req.user.id && item.type === 'upvote') ? true : false;
+        comment.is_downvote = comment.post_comment_upvotes.some((item: any) => item.user_id === req.user.id && item.type === 'downvote') ? true : false;
     }
     comment.created_at_formatted = moment(comment.created_at).fromNow();
 
     delete comment.post_comment_upvotes;
-    delete comment.post_comment_downvotes;
 
     const cek_user_config = await prisma.userConfig.findFirst({
         where: {
@@ -324,30 +315,32 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
 
     switch (comment_action) {
         case 'upvotes': {
-            const downvote = await prisma.postCommentDownvote.findFirst({
+            const downvote = await prisma.postCommentVotes.findFirst({
                 where: {
                     post_comment_id: comment_id,
-                    user_id: req.user.id
+                    user_id: req.user.id,
+                    type: 'downvote'
                 }
             })
 
             if (downvote) {
-                await prisma.postCommentDownvote.delete({
+                await prisma.postCommentVotes.delete({
                     where: {
                         id: downvote.id
                     }
                 })
             }
 
-            const upvote = await prisma.postCommentUpvote.findFirst({
+            const upvote = await prisma.postCommentVotes.findFirst({
                 where: {
                     post_comment_id: comment_id,
-                    user_id: req.user.id
+                    user_id: req.user.id,
+                    type: 'upvote'
                 }
             })
 
             if (upvote) {
-                await prisma.postCommentUpvote.delete({
+                await prisma.postCommentVotes.delete({
                     where: {
                         id: upvote.id
                     }
@@ -356,11 +349,12 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
             }
 
             if (!upvote) {
-                await prisma.postCommentUpvote.create({
+                await prisma.postCommentVotes.create({
                     data: {
                         post_comment_id: comment_id,
                         user_id: req.user.id,
                         post_comment_user_id: comment.user_id,
+                        type: 'upvote'
                     }
                 })
                 message = "Berhasil melakukan upvote";
@@ -370,30 +364,32 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
         }
 
         case 'downvotes': {
-            const upvote = await prisma.postCommentUpvote.findFirst({
+            const upvote = await prisma.postCommentVotes.findFirst({
                 where: {
                     post_comment_id: comment_id,
-                    user_id: req.user.id
+                    user_id: req.user.id,
+                    type: 'upvote'
                 }
             })
 
             if (upvote) {
-                await prisma.postCommentUpvote.delete({
+                await prisma.postCommentVotes.delete({
                     where: {
                         id: upvote.id
                     }
                 })
             }
 
-            const downvote = await prisma.postCommentDownvote.findFirst({
+            const downvote = await prisma.postCommentVotes.findFirst({
                 where: {
                     post_comment_id: comment_id,
-                    user_id: req.user.id
+                    user_id: req.user.id,
+                    type: 'downvote'
                 }
             })
 
             if (downvote) {
-                await prisma.postCommentDownvote.delete({
+                await prisma.postCommentVotes.delete({
                     where: {
                         id: downvote.id
                     }
@@ -402,11 +398,12 @@ export const commentUpvoteDownvote = asyncHandler(async (req: any, res: Response
             }
 
             if (!downvote) {
-                await prisma.postCommentDownvote.create({
+                await prisma.postCommentVotes.create({
                     data: {
                         post_comment_id: comment_id,
                         user_id: req.user.id,
                         post_comment_user_id: comment.user_id,
+                        type: 'downvote'
                     }
                 })
                 message = "Berhasil melakukan downvote";

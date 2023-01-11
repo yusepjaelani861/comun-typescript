@@ -64,8 +64,8 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
     post.created_at_formatted = moment(post.created_at).fromNow();
     post.updated_at_formatted = moment(post.updated_at).fromNow();
     post.post_comments_count = post.post_comments.length;
-    post.post_upvotes_count = post.post_upvotes.length;
-    post.post_downvotes_count = post.post_downvotes.length;
+    post.post_upvotes_count = post.post_upvotes.filter((item: any) => item.type === 'upvote').length;
+    post.post_downvotes_count = post.post_upvotes.filter((item: any) => item.type === 'downvote').length;
     post.post_vote_options_count = post.post_vote_options.length;
     if (post.post_vote_options_count > 0) {
         const has_image = post.post_vote_options.some((item: any) => item.image != null && item.image != '') ? true : false;
@@ -89,8 +89,8 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
         }))
     }
     post.body = post.body ? stringify(post.body) : '';
-    post.is_downvote = false;
-    post.is_upvote = false;
+    post.is_downvote = post.post_upvotes.some((post_upvote: any) => post_upvote.user_id === user_id && post_upvote.type === 'downvote') ? true : false;
+    post.is_upvote = post.post_upvotes.some((post_downvote: any) => post_downvote.user_id === user_id && post_downvote.type === 'upvote') ? true : false;
     post.has_access_to_delete = false
     const has_access_delete = await myPermissionGroup(group, user_id, 'hapus_konten')
     if (has_access_delete && has_access_delete === true) {
@@ -100,38 +100,11 @@ export const convertResPost = async (post: any, user_id: number = 0) => {
     if (post.user_id === user_id) {
         post.has_access_to_delete = true
     }
+    post.user.is_follow = post.user.followers.some((follower: any) => follower.follow_user_id === user_id) ? true : false;
+    delete post.user.followers;
     delete post.post_comments;
     delete post.post_upvotes;
-    delete post.post_downvotes;
-    post.is_joined = false;
-
-    if (user_id != 0) {
-        const post_upvote: any = await prisma.postUpvote.findFirst({
-            where: {
-                post_id: post.id,
-                user_id: user_id,
-            },
-        })
-
-        const post_downvote: any = await prisma.postDownvote.findFirst({
-            where: {
-                post_id: post.id,
-                user_id: user_id,
-            },
-        })
-
-        if (post_upvote) {
-            post.is_upvote = true;
-        }
-
-        if (post_downvote) {
-            post.is_downvote = true;
-        }
-
-        if (user_id) {
-            post.is_joined = group.group_members.some((group_member: any) => group_member.user_id === user_id);
-        }
-    }
+    post.is_joined = group.group_members.some((group_member: any) => group_member.user_id === user_id) ? true : false;
 
     return post;
 }

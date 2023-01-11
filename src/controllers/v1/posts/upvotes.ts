@@ -43,15 +43,32 @@ export const upvotesDownvotes = asyncHandler(async (req: any, res: Response, nex
 
     switch (post_action) {
         case 'upvotes': {
-            const upvotes = await prisma.postUpvote.findFirst({
+            const downvote = await prisma.postVotes.findFirst({
                 where: {
                     post_id: post_id,
-                    user_id: req.user?.id
+                    user_id: req.user?.id,
+                    type: 'downvote'
+                }
+            })
+
+            if (downvote) {
+                await prisma.postVotes.delete({
+                    where: {
+                        id: downvote.id
+                    }
+                })
+            }
+
+            const upvotes = await prisma.postVotes.findFirst({
+                where: {
+                    post_id: post_id,
+                    user_id: req.user?.id,
+                    type: 'upvote'
                 }
             })
 
             if (upvotes) {
-                await prisma.postUpvote.delete({
+                await prisma.postVotes.delete({
                     where: {
                         id: upvotes.id
                     }
@@ -60,29 +77,46 @@ export const upvotesDownvotes = asyncHandler(async (req: any, res: Response, nex
             }
 
             if (!upvotes) {
-                await prisma.postUpvote.create({
+                await prisma.postVotes.create({
                     data: {
                         post_id: post_id,
                         user_id: req.user?.id,
-                        post_user_id: post.user_id
+                        post_user_id: post.user_id,
+                        type: 'upvote'
                     }
                 })
                 message = 'Upvotes ditambahkan';
             }
-
             break;
         }
 
         case 'downvotes': {
-            const downvotes = await prisma.postDownvote.findFirst({
+            const upvotes = await prisma.postVotes.findFirst({
                 where: {
                     post_id: post_id,
-                    user_id: req.user?.id
+                    user_id: req.user?.id,
+                    type: 'upvote'
+                }
+            })
+
+            if (upvotes) {
+                await prisma.postVotes.delete({
+                    where: {
+                        id: upvotes.id
+                    }
+                })
+            }
+            
+            const downvotes = await prisma.postVotes.findFirst({
+                where: {
+                    post_id: post_id,
+                    user_id: req.user?.id,
+                    type: 'downvote'
                 }
             })
 
             if (downvotes) {
-                await prisma.postDownvote.delete({
+                await prisma.postVotes.delete({
                     where: {
                         id: downvotes.id
                     }
@@ -91,11 +125,12 @@ export const upvotesDownvotes = asyncHandler(async (req: any, res: Response, nex
             }
 
             if (!downvotes) {
-                await prisma.postDownvote.create({
+                await prisma.postVotes.create({
                     data: {
                         post_id: post_id,
                         user_id: req.user?.id,
-                        post_user_id: post.user_id
+                        post_user_id: post.user_id,
+                        type: 'downvote'
                     }
                 })
                 message = 'Downvotes ditambahkan';
@@ -189,9 +224,10 @@ export const upvotesList = asyncHandler(async (req: any, res: Response, next: Ne
         return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
     }
 
-    const post_upvotes = await prisma.postUpvote.findMany({
+    const post_upvotes = await prisma.postVotes.findMany({
         where: {
-            post_id: post.id
+            post_id: post.id,
+            type: 'upvote'
         },
         include: {
             user: {
@@ -212,7 +248,7 @@ export const upvotesList = asyncHandler(async (req: any, res: Response, next: Ne
         skip: (page - 1) * limit,
     })
 
-    const total = await prisma.postUpvote.count({
+    const total = await prisma.postVotes.count({
         where: {
             post_id: post.id
         }

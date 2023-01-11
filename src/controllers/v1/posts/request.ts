@@ -101,7 +101,6 @@ export const requestPost = asyncHandler(async (req: any, res: Response, next: Ne
             },
             post_comments: true,
             post_upvotes: true,
-            post_downvotes: true,
             post_vote_options: {
                 include: {
                     post_vote_members: {
@@ -244,7 +243,6 @@ export const viewRequestPost = asyncHandler(async (req: any, res: Response, next
             },
             post_comments: true,
             post_upvotes: true,
-            post_downvotes: true,
             post_vote_options: {
                 include: {
                     post_vote_members: {
