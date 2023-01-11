@@ -8,6 +8,21 @@ import md5 from "md5";
 import { encrypt } from "../../libraries/encrypt";
 import Randomstring from "randomstring";
 import sharp from "sharp";
+import JSFTP from 'jsftp'
+
+const ftp_host = process.env.FTP_HOST;
+const ftp_user = process.env.FTP_USERNAME;
+const ftp_pass = process.env.FTP_PASSWORD;
+const ftp_port = process.env.FTP_PORT;
+const ftp_url = process.env.FTP_URL;
+
+
+const ftp = new JSFTP({
+    host: ftp_host,
+    port: ftp_port ? parseInt(ftp_port) : 21,
+    user: ftp_user,
+    pass: ftp_pass,
+})
 
 export const uploadImage = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -44,11 +59,27 @@ export const uploadImage = asyncHandler(async (req: any, res: Response, next: Ne
             if (err) {
                 return next(new sendError('Upload image error', [], 'PROCESS_ERROR', 400));
             }
+
+            const buffer = fs.readFileSync(upload_full_path + filename_with_ext);
+            ftp.put(buffer, upload_url + filename_with_ext, function (err: any) {
+                if (err) {
+                    return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
+                }
+
+                fs.unlink(upload_full_path + filename_with_ext, (err: any) => {
+                    if (err) {
+                        return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
+                    }
+                })
+            })
+
         }
     );
+    const urlftp = ftp_url + upload_url + filename_with_ext
 
     let data = {
-        url: myUrl + '/public/images/' + type + '/' + filename_with_ext,
+        // url: myUrl + '/public/images/' + type + '/' + filename_with_ext,
+        url: urlftp,
         path: upload_url,
         filename: filename,
         filesize: filesize_in_mb,
@@ -97,8 +128,10 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
     fs.appendFileSync(upload_path + tmpFilename, buffer);
 
     let myUrl: string = req.protocol + '://' + req.get('host');
+    const urlftp = ftp_url + upload_url + filenamewithext
     let results: any = {
-        url: myUrl + upload_url + filenamewithext,
+        // url: myUrl + upload_url + filenamewithext,
+        url: urlftp,
         path: upload_url,
         filename,
         filename_with_ext: filenamewithext,
@@ -107,6 +140,19 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
 
     if (lastChunk) {
         fs.renameSync(upload_path + tmpFilename, upload_path + filenamewithext);
+
+        const buffer = fs.readFileSync(upload_path + filenamewithext);
+            ftp.put(buffer, upload_url + filenamewithext, function (err: any) {
+                if (err) {
+                    return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
+                }
+
+                fs.unlink(upload_path + filenamewithext, (err: any) => {
+                    if (err) {
+                        return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
+                    }
+                })
+            })
 
         results.status = 'finish';
 
@@ -189,13 +235,13 @@ export const viewImages = asyncHandler(async (req: any, res: Response, next: Nex
         })
 
         res.end(webp);
-        
+
         return res.json({
             width: imgWidth,
             height: imgHeight,
         })
     }
-    
+
     const filepath = '/public/images/webp/' + type + '/' + slug + '.webp';
     const fullpath = process.cwd() + filepath;
 
@@ -240,27 +286,27 @@ export const validation = (method: string) => {
         case 'uploadImage': {
             return [
                 body('type')
-                .isIn(['post', 'avatar'])
-                .withMessage("Please insert image type ['post', 'avatar']"),
+                    .isIn(['post', 'avatar'])
+                    .withMessage("Please insert image type ['post', 'avatar']"),
                 body('image')
-                .custom(async (value, { req }) => {
-                    if (req.files) {
-                        const {
-                            image
-                        } = req.files;
-                    
-                        const name = encrypt(image.name)
-                        const extension = image.name.split('.').pop()
-                    
-                        if (extension !== 'jpg' && extension !== 'jpeg' && extension !== 'png' && extension !== 'gif' && extension !== 'webp') {
-                            throw new Error('File extension is not allowed')
-                        }
+                    .custom(async (value, { req }) => {
+                        if (req.files) {
+                            const {
+                                image
+                            } = req.files;
 
-                        console.log(image);
-                    } else {
-                        throw new Error('Please insert file')
-                    }
-                }),
+                            const name = encrypt(image.name)
+                            const extension = image.name.split('.').pop()
+
+                            if (extension !== 'jpg' && extension !== 'jpeg' && extension !== 'png' && extension !== 'gif' && extension !== 'webp') {
+                                throw new Error('File extension is not allowed')
+                            }
+
+                            console.log(image);
+                        } else {
+                            throw new Error('Please insert file')
+                        }
+                    }),
             ]
         }
 
