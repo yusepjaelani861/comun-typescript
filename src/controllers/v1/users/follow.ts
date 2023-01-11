@@ -46,6 +46,30 @@ export const followUser = asyncHandler(async (req: any, res: Response, next: Nex
             }
         })
 
+        const cek_user_config = await prisma.userConfig.findFirst({
+            where: {
+                user_id: id,
+                config: {
+                    label: 'notification_following'
+                }
+            },
+            include: {
+                config: true
+            }
+        })
+
+        if (cek_user_config?.value === true) {
+            await prisma.notification.create({
+                data: {
+                    user_id: id,
+                    from_user_id: req.user?.id,
+                    type: 'follow',
+                    body: `<strong>${req.user?.name}</strong> mengikuti anda`,
+                    url: `/@${req.user?.username}`
+                }
+            })
+        }
+
         message = 'Anda berhasil follow'
     }
 
@@ -53,6 +77,15 @@ export const followUser = asyncHandler(async (req: any, res: Response, next: Nex
         await prisma.userFollow.delete({
             where: {
                 id: cekfollow.id
+            }
+        })
+
+        await prisma.notification.deleteMany({
+            where: {
+                user_id: id,
+                from_user_id: req.user?.id,
+                type: 'follow',
+                url: `/@${req.user?.username}`
             }
         })
 
