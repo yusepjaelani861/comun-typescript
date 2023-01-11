@@ -62,6 +62,7 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
                         name: true,
                         username: true,
                         avatar: true,
+                        followers: true,
                     }
                 },
                 group: {
@@ -154,7 +155,7 @@ export const comments = asyncHandler(async (req: any, res: Response, next: NextF
             item.is_downvote = false;
             if (req.user) {
                 item.is_upvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id && item.type === 'upvote') ? true : false;
-                item.is_downvote = item.post_comment_downvotes.some((item: any) => item.user_id === req.user.id && item.type === 'downvote') ? true : false;
+                item.is_downvote = item.post_comment_upvotes.some((item: any) => item.user_id === req.user.id && item.type === 'downvote') ? true : false;
             }
             item.created_at_formatted = moment(item.created_at).fromNow();
 

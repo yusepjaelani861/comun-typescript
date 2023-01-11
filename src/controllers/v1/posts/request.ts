@@ -88,6 +88,7 @@ export const requestPost = asyncHandler(async (req: any, res: Response, next: Ne
                     name: true,
                     username: true,
                     avatar: true,
+                    followers: true,
                 }
             },
             group: {
@@ -230,6 +231,7 @@ export const viewRequestPost = asyncHandler(async (req: any, res: Response, next
                     name: true,
                     username: true,
                     avatar: true,
+                    followers: true,
                 }
             },
             group: {

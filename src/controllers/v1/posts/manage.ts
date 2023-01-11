@@ -384,6 +384,7 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                         name: true,
                         username: true,
                         avatar: true,
+                        followers: true,
                     }
                 },
                 group: {
@@ -392,11 +393,39 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                         name: true,
                         slug: true,
                         avatar: true,
+                        privacy: true,
                     },
                 },
                 post_comments: true,
-                post_upvotes: true,
-                post_vote_options: true,
+                post_upvotes: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                username: true,
+                                avatar: true,
+                            }
+                        }
+                    }
+                },
+                post_vote_options: {
+                    include: {
+                        post_vote_members: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        username: true,
+                                        avatar: true,
+                                    }
+                                }
+                            },
+                            take: 3,
+                        }
+                    }
+                },
             },
         });
 
@@ -655,6 +684,26 @@ export const createPost = asyncHandler(async (req: any, res: Response, next: Nex
     // posts.is_downvote = false;
     // posts.is_upvote = false;
 
+    let cek_notification = await prisma.userFollow.findMany({
+        where: {
+            user_id: req.user.id,
+        }
+    })
+
+    if (cek_notification.length > 0) {
+        await Promise.all(cek_notification.map(async (res: any) => {
+            await prisma.notification.create({
+                data: {
+                    user_id: res.follow_user_id,
+                    from_user_id: req.user.id,
+                    type: 'post',
+                    body: `<strong>${req.user?.name}</strong> telah membuat postingan baru`,
+                    url: post.url,
+                }
+            })
+        }))
+    }
+
     return res.status(200).json(new sendResponse(posts, 'Berhasil membuat postingan', {}, 200));
     } catch (error: any) {
         return next(new sendError('Gagal membuat post', error, 'PROCESS_ERROR', 400));
@@ -797,7 +846,7 @@ export const deletePost = asyncHandler(async (req: any, res: Response, next: Nex
             const post: any = await prisma.post.findFirst({
                 where: {
                     slug: slug,
-                }
+                },
             })
 
             if (!post) {
@@ -841,6 +890,34 @@ export const deletePost = asyncHandler(async (req: any, res: Response, next: Nex
                 id: post.id
             }
         })
+
+        // let cek_notification = await prisma.userFollow.findMany({
+        //     where: {
+        //         user_id: post.user_id
+        //     }
+        // })
+
+        // if (cek_notification.length > 0) {
+        //     let notification = await prisma.notification.findMany({
+        //         where: {
+        //             user_id: {
+        //                 in: cek_notification.map((item: any) => item.follower_id)
+        //             },
+        //             type: 'post',
+        //             url: `/${post.group.slug}/${post.slug}`
+        //         }
+        //     })
+
+        //     if (notification.length > 0) {
+        //         await prisma.notification.deleteMany({
+        //             where: {
+        //                 id: {
+        //                     in: notification.map((item: any) => item.id)
+        //                 }
+        //             }
+        //         })
+        //     }
+        // }
 
         return res.status(200).json(new sendResponse({}, 'Berhasil menghapus postingan', {}, 200));
     } catch (error) {

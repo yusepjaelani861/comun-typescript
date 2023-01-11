@@ -151,6 +151,7 @@ export const reports = asyncHandler(async (req: any, res: Response, next: NextFu
                             name: true,
                             username: true,
                             avatar: true,
+                            followers: true,
                         }
                     },
                     group: {
