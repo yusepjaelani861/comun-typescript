@@ -5,7 +5,7 @@ import { sendError, sendResponse } from "../../../libraries/rest";
 
 const prisma = new PrismaClient()
 
-export const getPublicUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getPublicUser = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     const { username } = req.params;
 
     let user: any = await prisma.user.findFirst({
@@ -26,6 +26,8 @@ export const getPublicUser = asyncHandler(async (req: Request, res: Response, ne
     if (!user) {
         return next(new sendError('User not found', [], 'NOT_FOUND', 404));
     }
+
+    user.is_follow = user.followers.some((follower: any) => follower.follow_user_id === req.user?.id) ? true : false
 
     user.total_followers = user.followers.length
     user.total_followings = user.followings.length
