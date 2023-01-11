@@ -103,7 +103,7 @@ export const callbackGoogle = asyncHandler(async (req: Request, res: Response, n
         const urlGenerateAvatar = 'https://api.multiavatar.com/' + name.replace(' ', '_') + '.png?apikey=' + process.env.MULTIAVATAR_API_KEY;
         const imageAvatar = await axios.get(urlGenerateAvatar, { responseType: 'arraybuffer' });
 
-        const avatarName = name.replace(' ', '_') + '.svg';
+        const avatarName = name.replace(' ', '_') + '.png';
         const avatarPath = path.join(__dirname, '../../../../public/avatar/' + avatarName);
         const myUrl = req.protocol + '://' + req.get('host');
         const avatarUrl = myUrl + '/avatar/' + avatarName;
@@ -118,13 +118,31 @@ export const callbackGoogle = asyncHandler(async (req: Request, res: Response, n
             }
         })
 
+        let username;
+        username = name.replace(' ', '_').toLowerCase();
+        let check_username = await prisma.user.findFirst({
+            where: {
+                username: username
+            }
+        })
+        let i = 1;
+        while (check_username) {
+            username = username + '_' + i;
+            check_username = await prisma.user.findFirst({
+                where: {
+                    username: username
+                }
+            })
+            i++
+        }
+
         user = await prisma.user.create({
             data: {
                 name: name,
-                username: name,
+                username: username,
                 email: email,
                 password: hash,
-                avatar: picture ? picture : avatarUrl,
+                avatar: avatarUrl,
                 otp: null,
                 otp_created_at: null
             }
