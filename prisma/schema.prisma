@@ -36,11 +36,9 @@ model User {
   posts Post[]
   post_votes PostVoteMember[]
   post_vote_options PostVoteOption[]
-  post_upvotes PostUpvote[]
-  post_downvotes PostDownvote[]
+  post_upvotes PostVotes[]
   post_comments PostComment[]
-  post_comment_upvotes PostCommentUpvote[]
-  post_comment_downvotes PostCommentDownvote[]
+  pot_comment_votes PostCommentVotes[]
   notifications Notification[]
   configs UserConfig[]
   post_reports PostReport[]
@@ -107,8 +105,7 @@ model Post {
   user User @relation(fields: [user_id], references: [id])
   group Group @relation(fields: [group_id], references: [id])
   post_votes PostVoteMember[]
-  post_upvotes PostUpvote[]
-  post_downvotes PostDownvote[]
+  post_upvotes PostVotes[]
   post_comments PostComment[]
   post_tags PostTag[]
   group_analytics GroupAnalytic[]
@@ -182,26 +179,21 @@ model PostVoteOption {
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
 }
 
-model PostUpvote {
+model PostVotes {
   id Int @id @default(autoincrement())
   post_id Int
   post_user_id Int
   user_id Int
+  type PostVotesType
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
-model PostDownvote {
-  id Int @id @default(autoincrement())
-  post_id Int
-  post_user_id Int
-  user_id Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id])
+enum PostVotesType {
+  upvote
+  downvote
 }
 
 model PostComment {
@@ -216,30 +208,24 @@ model PostComment {
   updated_at DateTime @updatedAt
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
-  post_comment_upvotes PostCommentUpvote[]
-  post_comment_downvotes PostCommentDownvote[]
+  post_comment_upvotes PostCommentVotes[]
 }
 
-model PostCommentUpvote {
+model PostCommentVotes {
   id Int @id @default(autoincrement())
   post_comment_id Int
   post_comment_user_id Int
   user_id Int
+  type PostCommentVotesType
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post_comment PostComment @relation(fields: [post_comment_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
-model PostCommentDownvote {
-  id Int @id @default(autoincrement())
-  post_comment_id Int
-  post_comment_user_id Int
-  user_id Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  post_comment PostComment @relation(fields: [post_comment_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id])
+enum PostCommentVotesType {
+  upvote
+  downvote
 }
 
 model PostTag {
