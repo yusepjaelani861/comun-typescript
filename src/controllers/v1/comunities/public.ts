@@ -38,9 +38,6 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
                 include: {
                     group_role: true,
                 },
-                where: {
-                    status: 'joined'
-                }
             },
             group_posts: {
                 where: {
@@ -193,7 +190,7 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
     })
 
     groups = await Promise.all(groups.map(async (group: any) => {
-        const my_member = group.group_members.find((member: any) => member.user_id === req.user?.id);
+        let my_member = group.group_members.find((member: any) => member.user_id === req.user?.id);
         group.is_status = my_member ? my_member.status : 'not_member';
         group.is_member = await joinedGroup(group, req.user?.id) ?? false;
         group.is_owner = group.group_members.find((member: any) => member.user_id === req.user?.id && member.group_role.slug === 'owner') ? true : false;
