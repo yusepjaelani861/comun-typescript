@@ -177,6 +177,16 @@ export const actionRequestJoin = asyncHandler(async (req: any, res: Response, ne
             }
         })
 
+        await prisma.notification.create({
+            data: {
+                user_id: member.user_id,
+                from_user_id: req.user.id,
+                body: `Anda telah diterima menjadi anggota komunitas <strong>${group.name}</strong>`,
+                type: 'group',
+                url: `/${group.slug}`,
+            }
+        })
+
         return res.status(200).json(new sendResponse({}, 'Berhasil menerima permintaan', {}, 200));
     }
 

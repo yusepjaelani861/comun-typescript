@@ -228,6 +228,40 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
         })
     }
 
+    if (status === 'pending') {
+        const members = await prisma.groupMember.findMany({
+            where: {
+                group_id: group.id,
+                status: 'joined'
+            },
+            include: {
+                group_role: {
+                    include: {
+                        group_role_permissions: {
+                            where: {
+                                slug: 'terima_dan_tolak_anggota',
+                                status: true,
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        await Promise.all(members.map(async (item: any) => {
+            if (item.user && item.user.id === req.user.id) return;
+            await prisma.notification.create({
+                data: {
+                    user_id: item.user_id,
+                    body: `<strong>${req.user.name}</strong> ingin bergabung dengan komunitas <strong>${group.name}</strong>`,
+                    type: 'group',
+                    from_user_id: req.user.id,
+                    url: `/${group.slug}/manage/request-member`,
+                }
+            })
+        }))
+    }
+
     return res.status(200).json(new sendResponse(member, message, {}, 200));
 })
 
@@ -472,6 +506,7 @@ export const listAllMember = asyncHandler(async (req: any, res: Response, next: 
 
     where = {
         group_id: group.id,
+        status: 'joined',
     };
 
     if (role) {
