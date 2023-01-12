@@ -70,8 +70,8 @@ export const addNavigation = asyncHandler(async (req: any, res: Response, next: 
                     group_id: group.id,
                     title: group_navigation_title,
                     type: group_navigation_type,
-                    url: group_navigation_url ?? 'https://ui-avatars.com/api/?name='+ group_navigation_title +'&background=0D8ABC&color=fff&size=128',
-                    icon: group_navigation_icon,
+                    url: group_navigation_url,
+                    icon: group_navigation_icon ?? 'https://ui-avatars.com/api/?name='+ group_navigation_title +'&background=0D8ABC&color=fff&size=128',
                     order: 1,
                 }
             })
