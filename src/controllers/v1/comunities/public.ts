@@ -31,13 +31,16 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
 
     const group: any = await prisma.group.findFirst({
         where: {
-            slug: slug
+            slug: slug,
         },
         include: {
             group_members: {
                 include: {
                     group_role: true,
                 },
+                where: {
+                    status: 'joined'
+                }
             },
             group_posts: {
                 where: {
@@ -54,8 +57,16 @@ export const viewComunity = asyncHandler(async (req: any, res: Response, next: N
         return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
     }
 
-    const my_member = group.group_members.find((member: any) => member.user_id === req.user?.id);
-    group.is_status = my_member ? my_member.status : 'not_member';
+    const my_member = await prisma.groupMember.findFirst({
+        where: {
+            user_id: req.user?.id,
+            group_id: group.id
+        }
+    })
+    group.is_status = 'not_member';
+    if (my_member) {
+        group.is_status = my_member.status;
+    }
     group.is_member = await joinedGroup(group, req.user?.id) ?? false;
     group.has_kelola = false;
     const member_role = await prisma.groupMember.findFirst({
