@@ -497,4 +497,5 @@ enum NotificationType {
   comment_downvote
   follow
   report
+  group
 }
