@@ -212,6 +212,13 @@ export const createComment = asyncHandler(async (req: any, res: Response, next: 
         return next(new sendError('Post tidak ditemukan', [], 'NOT_FOUND', 404));
     }
 
+    if (post.group.privacy !== 'public') {
+        const joined = await joinedGroup(post.group, req.user?.id)
+        if (!joined) {
+            return next(new sendError('Anda tidak memiliki hak untuk berkomentar pada postingan ini', [], 'PROCESS_ERROR', 400));
+        }
+    }
+
     const createComment = await prisma.postComment.create({
         data: {
             post_id: comment_post_id,
@@ -266,16 +273,42 @@ export const createComment = asyncHandler(async (req: any, res: Response, next: 
         }
     })
 
-    if (cek_user_config?.value === true) {
-        await prisma.notification.create({
-            data: {
-                user_id: post.user_id,
-                from_user_id: req.user?.id,
-                body: `<strong>${req.user?.name}</strong> mengomentari postingan anda <strong>${post.title}</strong>`,
-                type: 'comment',
-                url: `/${post.group.slug}/${post.slug}`
+    if (!par_comment_id) {
+        if (cek_user_config?.value === true) {
+            await prisma.notification.create({
+                data: {
+                    user_id: post.user_id,
+                    from_user_id: req.user?.id,
+                    body: `<strong>${req.user?.name}</strong> mengomentari postingan anda <strong>${post.title}</strong>`,
+                    type: 'comment',
+                    url: `/${post.group.slug}/${post.slug}`
+                }
+            })
+        }
+    } else {
+        const par_comment = await prisma.postComment.findFirst({
+            where: {
+                id: par_comment_id
+            },
+            include: {
+                user: true
             }
         })
+
+        if (par_comment && par_comment.user_id !== req.user?.id) {
+            if (cek_user_config?.value === true) {
+                await prisma.notification.create({
+                    data: {
+                        user_id: par_comment.user_id,
+                        from_user_id: req.user?.id,
+                        body: `<strong>${req.user?.name}</strong> membalas komentar anda pada postingan <strong>${post.title}</strong>`,
+                        type: 'comment',
+                        url: `/${post.group.slug}/${post.slug}`
+                    }
+                })
+            }
+        }
+
     }
 
     return res.json(new sendResponse(comment, 'Berhasil membuat komentar', [], 200));
