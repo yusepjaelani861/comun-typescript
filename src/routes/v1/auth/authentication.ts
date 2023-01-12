@@ -2,11 +2,13 @@ import express from 'express';
 
 import { 
     register_email,
+    register_phone,
     send_otp,
     check_otp,
     check_username,
     verify_and_update,
     login_email,
+    login_phone,
     logout,
     validation,
 } from '../../../controllers/v1/auth/authentication';
@@ -20,8 +22,16 @@ router
     .post(validation('login_email'), login_email);
 
 router
+    .route('/login/phonenumber')
+    .post(validation('login_phone'), login_phone);
+
+router
     .route('/register/email')
     .post(validation('register_email'), register_email);
+
+router
+    .route('/register/phonenumber')
+    .post(validation('register_phone'), register_phone);
 
 router
     .route('/send/otp')

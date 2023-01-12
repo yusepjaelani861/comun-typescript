@@ -1,9 +1,9 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import asyncHandler from "../../../middleware/async";
 import { PrismaClient } from '@prisma/client';
 import { sendResponse, sendError } from "../../../libraries/rest";
 import { body, validationResult } from 'express-validator';
-import { sendEmail } from "../../../libraries/nodemailer";
+import { sendEmail, sendOTPWhatsapp } from "../../../libraries/nodemailer";
 import { generate_otp } from "../../../libraries/helper";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -32,10 +32,11 @@ export const register_email = asyncHandler(async (req: Request, res: Response, n
             username: true,
             avatar: true,
             password: true,
+            otp_created_at: true,
         }
     })
 
-    if (check && check.password !== null) {
+    if (check && check.otp_created_at !== null) {
         return next(new sendError('Email sudah terdaftar', [], 'PROCESS_ERROR', 400));
     }
 
@@ -51,6 +52,43 @@ export const register_email = asyncHandler(async (req: Request, res: Response, n
     }
 
     res.status(200).json(new sendResponse(user, 'Berhasil registrasi!', {}, 200));
+})
+
+export const register_phone = asyncHandler(async (req: Request, res: Response, next: any) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
+    }
+
+    const {
+        phonenumber,
+        country_code,
+    } = req.body;
+
+    const cek = await prisma.user.findFirst({
+        where: {
+            phonenumber: phonenumber,
+            country_code_phonenumber: country_code,
+        }
+    })
+
+    if (cek && cek.password !== null) {
+        return next(new sendError('Nomor sudah terdaftar', [], 'PROCESS_ERROR', 400))
+    }
+
+    let user;
+    if (!cek) {
+        user = await prisma.user.create({
+            data: {
+                phonenumber: phonenumber,
+                country_code_phonenumber: country_code,
+            }
+        })
+    } else {
+        user = cek
+    }
+
+    return res.json(new sendResponse(user, 'Berhasil registrasi', {}, 200))
 })
 
 export const send_otp = asyncHandler(async (req: Request, res: Response, next: any) => {
@@ -84,16 +122,22 @@ export const send_otp = asyncHandler(async (req: Request, res: Response, next: a
     })
 
 
-    if (!user.email) {
-        return next(new sendError('Email tidak ditemukan', [], 'PROCESS_ERROR', 400));
+    if (user.email && user.phonenumber === null) {
+        sendEmail(user.email,
+            "OTP untuk comun Poweered by Nearven",
+            `<h4 style="color:orange;"> OTP untuk comun Powered by Nearven </h4>
+                <p> Gunakan One Time Password (OTP) : <b> ${otp} </b> untuk memverifikasi dan menyelesaikan registrasi akun anda </p> 
+                <p> Jangan BERI tahu kode ini ke siapa pun, Termasuk comun, Waspada Penipuan!.</p>`,
+            "html");
     }
 
-    sendEmail(user.email,
-        "OTP untuk comun Poweered by Nearven",
-        `<h4 style="color:orange;"> OTP untuk comun Powered by Nearven </h4>
-            <p> Gunakan One Time Password (OTP) : <b> ${otp} </b> untuk memverifikasi dan menyelesaikan registrasi akun anda </p> 
-            <p> Jangan BERI tahu kode ini ke siapa pun, Termasuk comun, Waspada Penipuan!.</p>`,
-        "html");
+    if (user.phonenumber && user.email === null) {
+        const number = user.country_code_phonenumber + user.phonenumber;
+        await sendOTPWhatsapp(number, otp)
+    }
+    // if (!user.email) {
+    //     return next(new sendError('Email tidak ditemukan', [], 'PROCESS_ERROR', 400));
+    // }
 
     res.status(200).json(new sendResponse({}, 'Berhasil mengirim OTP!', {}, 200));
 })
@@ -150,7 +194,7 @@ export const verify_and_update = asyncHandler(async (req: Request, res: Response
 
     const urlGenerateAvatar = 'https://api.multiavatar.com/' + username + '.png?apikey=' + process.env.MULTIAVATAR_API_KEY;
     const imageAvatar = await axios.get(urlGenerateAvatar, { responseType: 'arraybuffer' });
-    
+
     const avatarName = username + '.svg';
     const avatarPath = path.join(__dirname, '../../../../public/avatar/' + avatarName);
     const myUrl = req.protocol + '://' + req.get('host');
@@ -218,12 +262,10 @@ export const verify_and_update = asyncHandler(async (req: Request, res: Response
     // res.setHeader("Set-Cookie", `token=${token}; path=/; Max-Age=${options.expires.toUTCString()}; HttpOnly; Secure; SameSite=Strict; Domain=${process.env.FRONTEND_AUTH_URL};`);
     res.setHeader(
         "Set-Cookie",
-        `token=${token}; HttpOnly; Domain=${
-          process.env.FRONTEND_AUTH_URL
-        }; SameSite=Strict; Max-Age=${
-            jwt_expired
+        `token=${token}; HttpOnly; Domain=${process.env.FRONTEND_AUTH_URL
+        }; SameSite=Strict; Max-Age=${jwt_expired
         }; Path=/;`
-      );
+    );
 
     res.json(new sendResponse({
         user: {
@@ -265,12 +307,56 @@ export const login_email = asyncHandler(async (req: Request, res: Response, next
 
     res.setHeader(
         "Set-Cookie",
-        `token=${token}; HttpOnly; Domain=${
-          process.env.FRONTEND_AUTH_URL
-        }; SameSite=Strict; Max-Age=${
-            jwt_expired
+        `token=${token}; HttpOnly; Domain=${process.env.FRONTEND_AUTH_URL
+        }; SameSite=Strict; Max-Age=${jwt_expired
         }; Path=/;`
-      );
+    );
+
+    res.json(new sendResponse({
+        user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            avatar: user.avatar,
+        }, token
+    }, 'Berhasil login!', {}, 200));
+})
+
+export const login_phone = asyncHandler(async (req: Request, res: Response, next: any) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new sendError('Validasi error.', errors.array(), 'VALIDATION_ERROR', 422));
+    }
+
+    const { phonenumber, country_code, password } = req.body;
+
+    const user = await prisma.user.findFirst({
+        where: {
+            phonenumber: phonenumber,
+            country_code_phonenumber: country_code,
+        }
+    })
+
+    if (!user) {
+        return next(new sendError('Nomor telepon atau password salah', [], 'PROCESS_ERROR', 400))
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password as string);
+
+    if (!isMatch) {
+        return next(new sendError('Email atau password salah.', [], 'PROCESS_ERROR', 400));
+    }
+
+    const token = jwt.sign({ id: user.id }, jwt_secret, {
+        expiresIn: jwt_expired
+    });
+
+    res.setHeader(
+        "Set-Cookie",
+        `token=${token}; HttpOnly; Domain=${process.env.FRONTEND_AUTH_URL
+        }; SameSite=Strict; Max-Age=${jwt_expired
+        }; Path=/;`
+    );
 
     res.json(new sendResponse({
         user: {
@@ -299,6 +385,14 @@ export const validation = (method: string) => {
                     .withMessage("Silahkan masukkan format email dengan benar.")
             ]
             break;
+        }
+
+        case 'register_phone': {
+            return [
+                body("country_code").notEmpty().withMessage('Code Negara Nomor harus diisi'),
+                body("phonenumber").notEmpty().withMessage('Nomor telepon wajib diisi').isLength({ min: 8 }).withMessage("Nomor telepon minimal 8 karakter")
+                .isNumeric().withMessage('Nomor telepon harus berupa nomor')
+            ]
         }
 
         case 'send_otp': {
@@ -401,6 +495,23 @@ export const validation = (method: string) => {
                     .withMessage("Email minimal 5 karakter.")
                     .isEmail()
                     .withMessage("Silahkan masukkan format email dengan benar."),
+                body("password")
+                    .isLength({ min: 5 })
+                    .withMessage("Password harus mempunyai minimal 5 Karakter")
+                    .matches(/\d/)
+                    .withMessage("Password harus mempunyai angka"),
+            ]
+            break;
+        }
+
+        case 'login_phone': {
+            return [
+                body("phonenumber")
+                    .isLength({ min: 5 })
+                    .withMessage("Email minimal 5 karakter.")
+                    .isNumeric()
+                    .withMessage("Silahkan masukkan format nomor dengan benar."),
+                    body("country_code").notEmpty().withMessage('Code Negara Nomor harus diisi'),
                 body("password")
                     .isLength({ min: 5 })
                     .withMessage("Password harus mempunyai minimal 5 Karakter")

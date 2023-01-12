@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -36,4 +37,16 @@ export const sendEmail = async (to: string, subject: string = 'Hello', body: str
     console.log('Message sent: %s', info.messageId);
 
     return info;
+}
+
+export const sendOTPWhatsapp = async (to: string, otp: string) => {
+    const url = process.env.WHATSAPP_API_URL || ''
+    await axios.post(url, {
+        number: to + '@c.us',
+        message: `*OTP untuk comun Powered by Nearven*\n\nGunakan One Time Password (OTP) : *${otp}* untuk memverifikasi dan menyelesaikan registrasi akun anda\n\nJangan beri tahu kode ini ke siapa pun, termasuk pihak comun, Waspadai Penipuan!.`
+    }, {
+        headers: {
+            'Accept': 'application/json'
+        }
+    })   
 }
