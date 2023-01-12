@@ -22,6 +22,7 @@ Please fill all data in .env below
 DATABASE_URL=
 SHADOW_DATABASE_URL=
 
+WHATSAPP_API_URL=
 
 MULTIAVATAR_API_KEY=
 
