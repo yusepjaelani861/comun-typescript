@@ -30,6 +30,8 @@ app.use(cors({
     credentials: true
 }));
 
+
+// API V1
 import auth from './routes/v1/auth';
 import user from './routes/v1/users';
 import comunities from './routes/v1/comunities';
@@ -38,6 +40,7 @@ import utils from './routes/v1/utils';
 import notification from './routes/v1/notifications';
 import payment from './routes/v1/payments';
 import analytic from './routes/v1/analytics';
+import interest from './routes/v1/interest';
 
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/user', user);
@@ -46,8 +49,8 @@ app.use('/api/v1/post', post);
 app.use('/api/v1/notification', notification);
 app.use('/api/v1/payment', payment);
 app.use('/api/v1/analytics', analytic);
-
 app.use('/api/v1/utils', utils);
+app.use('/api/v1/interest', interest);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Hello World!');
