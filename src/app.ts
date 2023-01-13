@@ -18,9 +18,8 @@ app.use(fileUpload());
 import { viewImages } from './controllers/v1/utils';
 app.get('/public/images/:type/:slug', viewImages);
 app.use('/avatar', express.static('public/avatar'));
+app.use('/country', express.static('public/country'));
 
-// app.use('/public/images/avatar', express.static('public/images/avatar'));
-// app.use('/public/images/post', express.static('public/images/post'));
 app.use('/public/videos', express.static('public/videos'));
 
 app.use(cors({
