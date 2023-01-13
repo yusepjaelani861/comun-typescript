@@ -60,10 +60,22 @@ export const register_phone = asyncHandler(async (req: Request, res: Response, n
         return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
     }
 
-    const {
+    let {
         phonenumber,
         country_code,
     } = req.body;
+
+    if (country_code.includes('+')) {
+        country_code = country_code.replace('+', '')
+    }
+
+    if (country_code === '62' && phonenumber.charAt(0) === '6' && phonenumber.charAt(1) === '2') {
+        phonenumber = phonenumber.replace(phonenumber.charAt(0), '').replace(phonenumber.charAt(1), '')
+    } 
+
+    if (country_code === '62' && phonenumber.charAt(0) === '0') {
+        phonenumber = phonenumber.replace(phonenumber.charAt(0), '')
+    }
 
     const cek = await prisma.user.findFirst({
         where: {
