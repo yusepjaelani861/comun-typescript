@@ -51,8 +51,8 @@ model UserFollow {
   follow_user_id Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user User @relation("user", fields: [user_id], references: [id])
-  follower_user User @relation("follower_user", fields: [follow_user_id], references: [id])
+  user User @relation("user", fields: [user_id], references: [id], onDelete: Cascade)
+  follower_user User @relation("follower_user", fields: [follow_user_id], references: [id], onDelete: Cascade)
 }
 
 model ResetPassword {
@@ -71,7 +71,7 @@ model UserConfig {
   value Boolean @default(true)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   config Config @relation(fields: [config_id], references: [id])
 }
 
@@ -102,7 +102,7 @@ model Post {
   status PostStatus @default(published)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   group Group @relation(fields: [group_id], references: [id])
   post_votes PostVoteMember[]
   post_upvotes PostVotes[]
@@ -139,7 +139,7 @@ model PostReport {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post Post? @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [user_id], references: [id])
+  user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
   group Group? @relation(fields: [group_id], references: [id])
 }
 
@@ -163,7 +163,7 @@ model PostVoteMember {
   updated_at DateTime @updatedAt
   post_vote_option PostVoteOption @relation(fields: [post_option_id], references: [id])
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model PostVoteOption {
@@ -175,7 +175,7 @@ model PostVoteOption {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post_vote_members PostVoteMember[]
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
 }
 
@@ -188,7 +188,7 @@ model PostVotes {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 enum PostVotesType {
@@ -207,7 +207,7 @@ model PostComment {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   post_comment_upvotes PostCommentVotes[]
 }
 
@@ -220,7 +220,7 @@ model PostCommentVotes {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   post_comment PostComment @relation(fields: [post_comment_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 enum PostCommentVotesType {
@@ -339,7 +339,7 @@ model GroupMember {
   updated_at DateTime @updatedAt
   group_role GroupRole @relation(fields: [group_role_id], references: [id])
   group Group @relation(fields: [group_id], references: [id])
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   group_member_forms GroupMemberForm[]
 }
 
@@ -485,7 +485,7 @@ model Notification {
   is_read Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user User @relation(fields: [from_user_id], references: [id])
+  user User @relation(fields: [from_user_id], references: [id], onDelete: Cascade)
 }
 
 enum NotificationType {
