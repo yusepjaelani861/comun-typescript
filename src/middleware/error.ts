@@ -20,7 +20,19 @@ const errorHandler = (err: any, req: Request, res: Response, next: NextFunction)
         if (err) throw err;
     });
 
-    if (typeof (err) !== 'undefined' && err.error.error_code == 'VALIDATION_ERROR') {
+    // if (typeof (err) !== 'undefined') {
+    //     res.status(err.status || 400).json({
+    //         success: false,
+    //         message: err.message || 'Server Error',
+    //         data: err.data || null,
+    //         error: {
+    //             error_code: err.error?.error_code || 'PROCESS_ERROR',
+    //             error_data: err.error_data || null,
+    //         }
+    //     })
+    // }
+
+    if (typeof (err) !== 'undefined' && err.error?.error_code == 'VALIDATION_ERROR') {
         let error_validation: any = {};
 
         err.error.error_data.forEach((element: any) => {
@@ -37,7 +49,7 @@ const errorHandler = (err: any, req: Request, res: Response, next: NextFunction)
         })
     }
 
-    if (typeof (err) !== 'undefined' && err.error.error_code == 'PROCESS_ERROR') {
+    if (typeof (err) !== 'undefined' && err.error?.error_code == 'PROCESS_ERROR') {
         return res.status(err.status || 400).json({
             success: false,
             message: err.message || 'Server Error',
@@ -49,19 +61,19 @@ const errorHandler = (err: any, req: Request, res: Response, next: NextFunction)
         })
     }
 
-    if (err.name == 'SequelizeDatabaseError') {
-        return res.status(500).json({
-            success: false,
-            message: 'Server Error',
-            data: null,
-            error: {
-                error_code: 'DATABASE_ERROR',
-                error_data: null,
-            }
-        })
-    }
+    // if (err.name == 'SequelizeDatabaseError') {
+    //     return res.status(500).json({
+    //         success: false,
+    //         message: 'Server Error',
+    //         data: null,
+    //         error: {
+    //             error_code: 'DATABASE_ERROR',
+    //             error_data: null,
+    //         }
+    //     })
+    // }
 
-    res.status(err.status || 400).json({
+    return res.status(err.status || 400).json({
         success: false,
         message: err.message || 'Server Error',
         data: err.data || null,
