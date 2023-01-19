@@ -17,6 +17,7 @@ const ftp_port = process.env.FTP_PORT;
 const ftp_url = process.env.FTP_URL;
 
 
+
 const ftp = new JSFTP({
     host: ftp_host,
     port: ftp_port ? parseInt(ftp_port) : 21,
@@ -71,23 +72,24 @@ export const uploadImage = asyncHandler(async (req: any, res: Response, next: Ne
                         return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
                     }
                 })
+
+                const urlftp = ftp_url + upload_url + filename_with_ext
+
+                let data = {
+                    // url: myUrl + '/public/images/' + type + '/' + filename_with_ext,
+                    url: urlftp,
+                    path: upload_url,
+                    filename: filename,
+                    filesize: filesize_in_mb,
+                    ext: extension,
+                    filename_with_ext
+                }
+
+                return res.json(new sendResponse(data, 'Upload image success', {}, 200));
             })
 
         }
     );
-    const urlftp = ftp_url + upload_url + filename_with_ext
-
-    let data = {
-        // url: myUrl + '/public/images/' + type + '/' + filename_with_ext,
-        url: urlftp,
-        path: upload_url,
-        filename: filename,
-        filesize: filesize_in_mb,
-        ext: extension,
-        filename_with_ext
-    }
-
-    return res.json(new sendResponse(data, 'Upload image success', {}, 200));
 })
 
 export const uploadVideo = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
@@ -142,17 +144,17 @@ export const uploadVideo = asyncHandler(async (req: any, res: Response, next: Ne
         fs.renameSync(upload_path + tmpFilename, upload_path + filenamewithext);
 
         const buffer = fs.readFileSync(upload_path + filenamewithext);
-            ftp.put(buffer, upload_url + filenamewithext, function (err: any) {
+        ftp.put(buffer, upload_url + filenamewithext, function (err: any) {
+            if (err) {
+                return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
+            }
+
+            fs.unlink(upload_path + filenamewithext, (err: any) => {
                 if (err) {
                     return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
                 }
-
-                fs.unlink(upload_path + filenamewithext, (err: any) => {
-                    if (err) {
-                        return next(new sendError('Upload image error', err, 'PROCESS_ERROR', 400));
-                    }
-                })
             })
+        })
 
         results.status = 'finish';
 
@@ -175,6 +177,8 @@ const calculateAspectRation = (sourceWidth: number, sourceHeight: number, width:
 
     return aspectRatio;
 }
+
+
 
 export const viewImages = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
     let { type, slug } = req.params;
