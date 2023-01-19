@@ -55,6 +55,62 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
     };
 
     switch (type) {
+        case 'all': {
+            if (search) {
+                where = {
+                    ...where,
+                    title: {
+                        contains: search,
+                        mode: 'insensitive'
+                    }
+                }
+            }
+
+            if (req.user && req.user.id !== undefined) {
+                const member = await prisma.groupMember.findMany({
+                    where: {
+                        user_id: req.user.id,
+                        status: 'joined'
+                    }
+                });
+
+                const group_ids = member.map((item: any) => item.group_id)
+
+                where = {
+                    ...where,
+                    OR: [
+                        {
+                            group_id: {
+                                in: group_ids
+                            },
+                        },
+                        {
+                            group: {
+                                OR: [
+                                    {
+                                        privacy: 'public'
+                                    },
+                                ]
+                            },
+                        },
+                    ]
+                }
+            } else {
+                where = {
+                    ...where,
+                    group: {
+                        OR: [
+                            {
+                                privacy: 'public'
+                            }
+                        ]
+                    }
+                }
+            }
+            
+            break;
+        }
+
         case 'dashboard': {
             if (req.user && req.user.id !== undefined) {
                 const member = await prisma.groupMember.findMany({
@@ -80,12 +136,9 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                                     {
                                         privacy: 'public'
                                     },
-                                    {
-                                        privacy: 'restricted'
-                                    }
                                 ]
                             },
-                        }
+                        },
                     ],
                 }
             } else {
@@ -96,9 +149,6 @@ export const posts = asyncHandler(async (req: any, res: Response, next: NextFunc
                             {
                                 privacy: 'public'
                             },
-                            {
-                                privacy: 'restricted'
-                            }
                         ]
                     },
                 };
