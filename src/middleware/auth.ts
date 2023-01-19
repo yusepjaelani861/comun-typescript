@@ -36,10 +36,8 @@ export const protect = asyncHandler(async (req: any, res: Response, next: NextFu
             username: true,
             email: true,
             email_verified_at: true,
-            country_code_phonenumber: true,
             bio: true,
             avatar: true,
-            background: true,
             created_at: true,
         }
     });
@@ -82,10 +80,8 @@ export const withtoken = asyncHandler(async (req: any, res: Response, next: Next
                 username: true,
                 email: true,
                 email_verified_at: true,
-                country_code_phonenumber: true,
                 bio: true,
                 avatar: true,
-                background: true,
                 created_at: true,
             }
         });
