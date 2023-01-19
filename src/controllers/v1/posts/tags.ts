@@ -194,7 +194,7 @@ export const listPostByTag = asyncHandler(async (req: any, res: Response, next: 
                 },
                 {
                     group: {
-                        privacy: 'restricted',
+                        privacy: 'hidden',
                         group_members: {
                             some: {
                                 user_id: req.user.id
