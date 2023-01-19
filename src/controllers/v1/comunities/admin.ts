@@ -6,6 +6,8 @@ import { body, validationResult } from "express-validator";
 import { createMemberPermission, createRolePermission, myPermissionGroup } from "./helper";
 import { pagination } from "../../../libraries/helper";
 import moment from "moment";
+import { insert,update,deleteWhere } from '../../../database/chat';
+import { convertUser } from "../users/helper";
 
 const prisma = new PrismaClient();
 
@@ -26,6 +28,7 @@ export const kickMember = asyncHandler(async (req: any, res: Response, next: Nex
             slug: slug
         }
     })
+    console.log(group)
 
     if (!group) {
         return next(new sendError('Komunitas tidak ditemukan', [], 'NOT_FOUND', 404));
@@ -62,7 +65,9 @@ export const kickMember = asyncHandler(async (req: any, res: Response, next: Nex
         where: {
             id: group_member_id,
         }
-    })
+    });
+
+    await deleteWhere('GroupMember',{ id:group_member_id });
 
     return res.status(200).json(new sendResponse({}, 'Anggota berhasil dihapus', {}, 200));
 })
@@ -107,6 +112,8 @@ export const requestJoinComunity = asyncHandler(async (req: any, res: Response, 
                     name: true,
                     username: true,
                     avatar: true,
+                    followers: true,
+                    followings: true,
                 }
             },
             group_member_forms: {
@@ -116,6 +123,10 @@ export const requestJoinComunity = asyncHandler(async (req: any, res: Response, 
             },
         },
     })
+
+    await Promise.all(request_members.map(async (member: any) => {
+        member.user = convertUser(member.user, req.user?.id)
+    }))
 
     const total_members = await prisma.groupMember.count({
         where: {
@@ -176,6 +187,8 @@ export const actionRequestJoin = asyncHandler(async (req: any, res: Response, ne
                 status: 'joined'
             }
         })
+
+        await update('GroupMember', { status: 'joined' },{ id: member.id });
 
         await prisma.notification.create({
             data: {
@@ -250,20 +263,26 @@ export const editComunity = asyncHandler(async (req: any, res: Response, next: N
         return next(new sendError('Saat ini Anda tidak bisa mengubah slug komunitas', [], 'PROCESS_ERROR', 400));
     }
 
+    let data_group  = {
+        name: group_name ? group_name : group.name,
+        tagline: group_tagline ? group_tagline : group.tagline,
+        slug: group_slug ? group_slug : group.slug,
+        avatar: group_avatar ? group_avatar : group.avatar,
+        background: group_background ? group_background : group.background,
+        color: group_color ? group_color : group.color,
+        privacy: group_privacy ? group_privacy : group.privacy,
+        slug_updated_at: group_slug ? moment().format() : group.slug_updated_at,
+    };
+
     const update_group = await prisma.group.update({
         where: {
             id: group.id
         },
-        data: {
-            name: group_name ? group_name : group.name,
-            tagline: group_tagline ? group_tagline : group.tagline,
-            slug: group_slug ? group_slug : group.slug,
-            avatar: group_avatar ? group_avatar : group.avatar,
-            background: group_background ? group_background : group.background,
-            color: group_color ? group_color : group.color,
-            privacy: group_privacy ? group_privacy : group.privacy,
-            slug_updated_at: group_slug ? moment().format() : group.slug_updated_at,
-        }
+        data: data_group
+    })
+
+    update('Group',data_group,{
+        id: group.id
     })
 
     return res.status(200).json(new sendResponse(update_group, 'Berhasil mengubah komunitas', {}, 200));

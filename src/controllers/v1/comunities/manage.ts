@@ -5,6 +5,8 @@ import { sendError, sendResponse } from "../../../libraries/rest";
 import { body, validationResult } from "express-validator";
 import { createGroupPermission, createMemberPermission, createRolePermission, joinedGroup, myPermissionGroup } from "./helper";
 import { pagination } from "../../../libraries/helper";
+import { insert, update, deleteWhere } from '../../../database/chat';
+import { convertUser } from "../users/helper";
 
 const prisma = new PrismaClient();
 
@@ -22,6 +24,7 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
         background,
         color,
         privacy,
+        interests,
     } = req.body;
 
     const
@@ -45,35 +48,100 @@ export const createComunity = asyncHandler(async (req: any, res: Response, next:
         return next(new sendError('Komunitas sudah ada', [], 'PROCESS_ERROR', 400));
     }
 
+    let community_data: any = {
+        name: group_name,
+        slug: group_slug,
+        tagline: group_tagline,
+        avatar: group_avatar ? group_avatar : `https://ui-avatars.com/api/?name=${group_name}&background=0D8ABC&color=fff&size=128`,
+        background: group_background,
+        color: group_color,
+        privacy: group_privacy,
+    };
+
     const comunity = await prisma.group.create({
-        data: {
-            name: group_name,
-            slug: group_slug,
-            tagline: group_tagline,
-            avatar: group_avatar ? group_avatar : `https://ui-avatars.com/api/?name=${group_name}&background=0D8ABC&color=fff&size=128`,
-            background: group_background,
-            color: group_color,
-            privacy: group_privacy,
-        }
+        data: community_data
     })
+
+    await Promise.all(interests.map(async (interest: any) => {
+        let relation_id = comunity.id;
+        if (interest.id === null) {
+            let cek = await prisma.interest.findFirst({
+                where: {
+                    name: interest.name
+                }
+            })
+
+            if (!cek) {
+                cek = await prisma.interest.create({
+                    data: {
+                        name: interest.name,
+                        slug: interest.name.toLowerCase().replace(/ /g, '-'),
+                    }
+                })
+            }
+
+            await prisma.relationInterest.create({
+                data: {
+                    relation_id: relation_id,
+                    interest_id: cek.id,
+                    type: 'group'
+                }
+            })
+        } else {
+            let minat = await prisma.interest.findFirst({
+                where: {
+                    id: interest.id
+                }
+            })
+
+            if (!minat) {
+                minat = await prisma.interest.create({
+                    data: {
+                        name: interest.name,
+                        slug: interest.name.toLowerCase().replace(/ /g, '-'),
+                    }
+                })
+            }
+
+            await prisma.relationInterest.create({
+                data: {
+                    relation_id: relation_id,
+                    interest_id: minat.id,
+                    type: 'group'
+                }
+            })
+        }
+    }))
+
+    insert('Group', { ...community_data, id: comunity.id });
+
+    let group_role_data = {
+        group_id: comunity.id,
+        name: 'Owner',
+        slug: 'owner',
+        description: 'Owner of the group',
+    };
 
     const owner = await prisma.groupRole.create({
-        data: {
-            group_id: comunity.id,
-            name: 'Owner',
-            slug: 'owner',
-            description: 'Owner of the group',
-        }
+        data: group_role_data
     })
 
+
+    insert('GroupRole', { ...group_role_data, id: owner.id });
+
+    let group_member_data: any = {
+        group_id: comunity.id,
+        user_id: id,
+        group_role_id: owner.id,
+        status: 'joined',
+    };
+
+
     const group_member = await prisma.groupMember.create({
-        data: {
-            group_id: comunity.id,
-            user_id: id,
-            group_role_id: owner.id,
-            status: 'joined',
-        }
-    })
+        data: group_member_data
+    });
+
+    insert('GroupMember', { ...group_member_data, id: group_member.id });
 
     await createRolePermission(comunity, owner);
     await createGroupPermission(comunity.id)
@@ -92,7 +160,6 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
     if (!errors.isEmpty()) {
         return next(new sendError('Validasi error', errors.array(), 'VALIDATION_ERROR', 422));
     }
-
     const { slug } = req.params;
     const {
         answer,
@@ -136,6 +203,8 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
                 description: 'Member of the group',
             }
         })
+
+        await insert('GroupRole', { ...role, id: role.id });
 
         createMemberPermission(role);
     }
@@ -212,6 +281,8 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
                 data: data
             })
 
+            await insert('GroupMember', { ...data, id: member.id });
+
             await Promise.all(answer.map(async (item: any) => {
                 await prisma.groupMemberForm.create({
                     data: {
@@ -226,6 +297,8 @@ export const joinComunity = asyncHandler(async (req: any, res: Response, next: N
         member = await prisma.groupMember.create({
             data: data
         })
+
+        await insert('GroupMember', { ...data, id: member.id });
     }
 
     if (status === 'pending') {
@@ -305,6 +378,8 @@ export const exitComunity = asyncHandler(async (req: any, res: Response, next: N
             id: group_member.id
         }
     })
+
+    await deleteWhere('GroupMember', { id: group_member.id });
 
     return res.status(200).json(new sendResponse({}, 'Anda berhasil keluar dari komunitas!', {}, 200));
 })
@@ -425,6 +500,8 @@ export const listMemberComunity = asyncHandler(async (req: any, res: Response, n
                     name: true,
                     username: true,
                     avatar: true,
+                    followers: true,
+                    followings: true,
                 }
             },
             group_role: {
@@ -444,6 +521,10 @@ export const listMemberComunity = asyncHandler(async (req: any, res: Response, n
             }
         }
     })
+
+    await Promise.all(group_member.map(async (item: any) => {
+        convertUser(item.user, req.user?.id);   
+    }))
 
     const group_role = await prisma.groupRole.findMany({
         where: {
@@ -544,6 +625,8 @@ export const listAllMember = asyncHandler(async (req: any, res: Response, next: 
                     name: true,
                     username: true,
                     avatar: true,
+                    followers: true,
+                    followings: true,
                 }
             },
             group_role: {
@@ -563,6 +646,10 @@ export const listAllMember = asyncHandler(async (req: any, res: Response, next: 
             }
         }
     })
+
+    await Promise.all(group_member.map(async (item: any) => {
+        convertUser(item.user, req.user?.id);
+    }))
 
     total_group_member = await prisma.groupMember.count({
         where: where,
@@ -609,6 +696,8 @@ export const listAnswerFormJoin = asyncHandler(async (req: any, res: Response, n
                             name: true,
                             username: true,
                             avatar: true,
+                            followers: true,
+                            followings: true,
                         },
                     },
                 },
@@ -621,6 +710,10 @@ export const listAnswerFormJoin = asyncHandler(async (req: any, res: Response, n
             id: order,
         },
     })
+
+    await Promise.all(answers.map(async (item: any) => {
+        convertUser(item.group_member.user, req.user?.id);
+    }))
 
     const total_answers = await prisma.groupMemberForm.count({
         where: {
@@ -637,6 +730,32 @@ export const validation = (method: string) => {
     switch (method) {
         case 'createComunity': {
             return [
+                body('interests').notEmpty().withMessage('Bidang minat tidak boleh kosong!')
+                    .isArray().withMessage('Bidang minat harus berupa array!')
+                    .custom(async (value, { req }) => {
+                        // value must be have id: 1, name: 'Bidang Minat 1'
+                        if (value && value.length > 0) {
+                            if (value.length == 0) {
+                                throw new Error('Pilih minimal 1 minat')
+                            }
+
+                            value.forEach((res: any) => {
+                                if (
+                                    !(
+                                        Object.keys(res).includes("id") &&
+                                        Object.keys(res).includes("name")
+                                    )
+                                ) {
+                                    throw new Error("Minat harus berisi id dan nama");
+                                }
+
+                                if (!res.name) {
+                                    throw new Error("Nama minat tidak boleh kosong");
+                                }
+                            });
+                        }
+
+                    }),
                 body('name').notEmpty().withMessage('Nama komunitas tidak boleh kosong!'),
                 body('slug').notEmpty().withMessage('Slug komunitas tidak boleh kosong!'),
                 // body('tagline').notEmpty().withMessage('Tagline komunitas tidak boleh kosong!'),

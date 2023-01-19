@@ -1,34 +1,48 @@
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
+const { insert } = require('../../../database/chat');
+
 
 export const createRolePermission = async (group: any, owner: any) => {
+    let moderator_data :any = {
+        group_id: group.id,
+        name: 'Moderator',
+        slug: 'moderator',
+        description: 'Moderator of the group',
+    };
+
     const moderator = await prisma.groupRole.create({
-        data: {
-            group_id: group.id,
-            name: 'Moderator',
-            slug: 'moderator',
-            description: 'Moderator of the group',
-        }
+        data: moderator_data
     })
+
+    insert('GroupRole',{...moderator_data, id: moderator.id})
+
+    let admin_data :any =  {
+        group_id: group.id,
+        name: 'Admin',
+        slug: 'admin',
+        description: 'Admin of the group',
+    };
 
     const admin = await prisma.groupRole.create({
-        data: {
-            group_id: group.id,
-            name: 'Admin',
-            slug: 'admin',
-            description: 'Admin of the group',
-        }
+        data: admin_data
     })
 
+    insert('GroupRole',{...admin_data, id: admin.id})
+
+    let member_data :any = {
+        group_id: group.id,
+        name: 'Anggota',
+        slug: 'anggota',
+        description: 'Anggota of the group',
+    }; 
+
     const member = await prisma.groupRole.create({
-        data: {
-            group_id: group.id,
-            name: 'Anggota',
-            slug: 'anggota',
-            description: 'Anggota of the group',
-        }
+        data: member_data
     })
+
+    insert('GroupRole',{...member_data, id: member.id})
 
     // Create Owner Permission
     await prisma.groupRolePermission.createMany({

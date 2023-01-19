@@ -190,11 +190,11 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
             group_members: {
                 include: {
                     group_role: true,
-                }
+                },
             },
             group_posts: true,
             group_roles: true,
-        },
+        },        
         orderBy: orderBy,
         skip: (page - 1) * limit,
         take: limit,
@@ -212,7 +212,7 @@ export const listAllComunity = asyncHandler(async (req: any, res: Response, next
         delete group.group_roles;
         return group;
     }));
-
+    
     return res.status(200).json(new sendResponse(groups, 'Daftar komunitas ditemukan', pagination(page, limit, total), 200));
 })
 

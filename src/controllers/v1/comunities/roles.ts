@@ -5,6 +5,7 @@ import { sendError, sendResponse } from "../../../libraries/rest";
 import { body, validationResult } from "express-validator";
 import { createMemberPermission, createRolePermission, joinedGroup, list_permission_roles, myPermissionGroup } from "./helper";
 import { pagination } from "../../../libraries/helper";
+import { insert,update,deleteWhere } from '../../../database/chat';
 
 const prisma = new PrismaClient();
 
@@ -57,14 +58,18 @@ export const createRoles = asyncHandler(async (req: any, res: Response, next: Ne
 
     try {
         await prisma.$transaction(async (prisma) => {
+            const group_role_data ={
+                slug: slug_role,
+                name: group_role_name,
+                group_id: group.id,
+                description: group_role_name + ' of the group',
+            };
+
             const group_role = await prisma.groupRole.create({
-                data: {
-                    slug: slug_role,
-                    name: group_role_name,
-                    group_id: group.id,
-                    description: group_role_name + ' of the group',
-                }
+                data: group_role_data
             })
+            
+            insert('GroupRole', group_role_data)
 
             await Promise.all(list_permission_roles.map(async (item: any) => {
                 const izin = permissions.find((permission: any) => permission.slug === item.slug);
@@ -400,6 +405,12 @@ export const changeRoleMember = asyncHandler(async (req: any, res: Response, nex
         data: {
             group_role_id: group_role_id
         }
+    })
+
+    update('GroupMember', {
+        group_role_id: group_role_id,
+    },{
+        id: user_member.id
     })
 
     return res.status(200).json(new sendResponse(update_role, 'Berhasil mengubah role member', {}, 200));

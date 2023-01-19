@@ -360,7 +360,7 @@ export const validation = (method: string) => {
     switch (method) {
         case 'settingPrivacy': {
             return [
-                body('privacy').notEmpty().withMessage('Privacy tidak boleh kosong').isIn(['public', 'private', 'restricted']).withMessage('Privacy tidak valid'),
+                body('privacy').notEmpty().withMessage('Privacy tidak boleh kosong').isIn(['public', 'private', 'hidden']).withMessage('Privacy tidak valid'),
             ]
         }
 
