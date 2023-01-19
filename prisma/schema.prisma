@@ -9,7 +9,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
@@ -20,17 +20,14 @@ model User {
   email_verified_at DateTime?
   password  String?
   phonenumber String?
-  country_code_phonenumber String?
+  country_code String?
   bio String?
   avatar String?
-  background String?
-  otp String?
-  otp_created_at DateTime?
+  provider_id String?
+  provider String?
   username_updated_at DateTime?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  provider_id String?
-  provider String?
   followers UserFollow[] @relation("user")
   followings UserFollow[] @relation("follower_user")
   posts Post[]
@@ -43,6 +40,46 @@ model User {
   configs UserConfig[]
   post_reports PostReport[]
   group_members GroupMember[]
+  otps Otp[]
+}
+
+model UserConfig {
+  id Int @id @default(autoincrement())
+  user_id Int
+  config_id Int
+  value Boolean @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  config Config @relation(fields: [config_id], references: [id])
+}
+
+model Config {
+  id Int @id @default(autoincrement())
+  label String
+  name String
+  type String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user_configs UserConfig[]
+}
+
+model Otp {
+  id Int @id @default(autoincrement())
+  user_id Int
+  ip String?
+  device String? @db.Text
+  otp String?
+  type OtpType
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user User @relation(fields: [user_id], references: [id])
+}
+
+enum OtpType {
+  login
+  register
+  forgot_password
 }
 
 model UserFollow {
@@ -64,29 +101,6 @@ model ResetPassword {
   updated_at DateTime @updatedAt
 }
 
-model UserConfig {
-  id Int @id @default(autoincrement())
-  user_id Int
-  config_id Int
-  value Boolean @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  config Config @relation(fields: [config_id], references: [id])
-}
-
-model Config {
-  id Int @id @default(autoincrement())
-  label String
-  name String
-  type String?
-  is_on_notification Boolean @default(true)
-  is_on_view Boolean @default(false)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  user_configs UserConfig[]
-}
-
 model Post {
   id Int @id @default(autoincrement())
   user_id Int
@@ -100,6 +114,7 @@ model Post {
   content_type ContentType
   question_post_id Int?
   status PostStatus @default(published)
+  view Int @default(0)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   user User @relation(fields: [user_id], references: [id])
@@ -276,7 +291,7 @@ model Group {
 enum GroupPrivacy {
   public
   private
-  restricted
+  hidden
 }
 
 model GroupPermission {
