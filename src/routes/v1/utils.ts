@@ -15,6 +15,7 @@ router
 
 router
     .route("/upload/videos")
-    .post(bodyParser.raw({ type: 'application/octet-stream', limit: '100mb' }), uploadVideo);
+    .post(bodyParser.raw({ type: 'application/octet-stream', limit: '500mb' }), uploadVideo);
+
 
 export default router;
