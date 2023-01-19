@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -43,10 +45,29 @@ export const sendOTPWhatsapp = async (to: string, otp: string) => {
     const url = process.env.WHATSAPP_API_URL || ''
     await axios.post(url, {
         number: to + '@c.us',
-        message: `*OTP untuk comun Powered by Nearven*\n\nGunakan One Time Password (OTP) : *${otp}* untuk memverifikasi dan menyelesaikan registrasi akun anda\n\nJangan beri tahu kode ini ke siapa pun, termasuk pihak comun, Waspadai Penipuan!.`
+        message: `Kode OTP Comun anda adalah : *${otp}*. kode ini hanya berlaku 10 menit`
     }, {
         headers: {
             'Accept': 'application/json'
         }
-    })   
+    })
+}
+
+export const sendSMSZenziva = async (to: string, otp: string) => {
+    const userKey = process.env.ZENZIVA_SMS_USER_KEY || ''
+    const passKey = process.env.ZENZIVA_SMS_PASS_KEY || ''
+
+    const url = 'https://console.zenziva.net/reguler/api/sendsms/';
+
+    const response = await axios.post(url, {
+        userkey: userKey,
+        passkey: passKey,
+        to: to,
+        message: `Kode OTP Comun anda adalah : ${otp}. kode ini hanya berlaku 10 menit`
+    })
+
+    // if (!fs.existsSync(path.join(__dirname, `../public/sms/${to}.json`))) {
+    //     fs.writeFileSync(path.join(__dirname, `../public/sms/${to}.json`), JSON.stringify(response.data))
+    // }
+    fs.writeFileSync(path.join(__dirname, `../../public/sms/${to}.json`), JSON.stringify(response.data))
 }
