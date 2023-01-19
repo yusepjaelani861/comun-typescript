@@ -6,6 +6,7 @@ import { body, validationResult } from "express-validator";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../../../libraries/nodemailer";
 import { generate_otp } from "../../../libraries/helper";
+import { insert,update,deleteWhere } from '../../../database/chat';
 
 const prisma = new PrismaClient();
 
@@ -49,6 +50,8 @@ export const updatePassword = asyncHandler(async (req: any, res: Response, next:
         },
         data: data
     });
+
+    await update('User',data, { id: id});
 
     return res.status(200).json(new sendResponse({}, 'Password berhasil diubah', {}, 200));
 })
@@ -164,6 +167,8 @@ export const changeEmail = asyncHandler(async (req: any, res: Response, next: Ne
             email: email
         }
     });
+
+    await update('User', { email: email}, { id: id});
 
     await prisma.resetPassword.delete({
         where: {

@@ -22,14 +22,11 @@ export const getProfile = asyncHandler(async (req: any, res: Response, next: Nex
             username: true,
             bio: true,
             avatar: true,
-            background: true,
             email: true,
             email_verified_at: true,
             phonenumber: true,
-            country_code_phonenumber: true,
             created_at: true,
             updated_at: true,
-
         }
     });
 
@@ -88,6 +85,10 @@ export const updateProfile = asyncHandler(async (req: any, res: Response, next: 
         data: data,
     })
 
+    const { update } = require('../../../database/chat');
+
+    await update('User',data, { id: id});
+
     return res.status(200).json(new sendResponse({}, 'User updated', {}, 200));
 })
 
@@ -119,6 +120,10 @@ export const updateAvatar = asyncHandler(async (req: any, res: Response, next: N
             avatar: avatar,
         },
     })
+
+    const { update } = require('../../../database/chat');
+    // Update avatar in chat
+    update('User', { avatar: avatar }, { id: id });
 
     return res.status(200).json(new sendResponse(userUpdated, 'User updated', {}, 200));
 })
