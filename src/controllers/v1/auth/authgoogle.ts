@@ -97,9 +97,6 @@ export const callbackGoogle = asyncHandler(async (req: Request, res: Response, n
     }
 
     if (!user) {
-        const salt = await bcrypt.genSalt(10);
-        const hash = await bcrypt.hash(name, salt);
-
         const urlGenerateAvatar = 'https://api.multiavatar.com/' + name.replace(' ', '_') + '.png?apikey=' + process.env.MULTIAVATAR_API_KEY;
         const imageAvatar = await axios.get(urlGenerateAvatar, { responseType: 'arraybuffer' });
 
@@ -141,10 +138,9 @@ export const callbackGoogle = asyncHandler(async (req: Request, res: Response, n
                 name: name,
                 username: username,
                 email: email,
-                password: hash,
                 avatar: avatarUrl,
-                otp: null,
-                otp_created_at: null
+                provider_id: dataProfile.id,
+                provider: 'google',
             }
         })
     }
