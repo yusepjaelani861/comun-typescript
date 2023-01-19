@@ -1,10 +1,11 @@
 import express, { Express, Request, Response } from 'express';
-import { sendError } from './libraries/rest';
+import { sendError, sendResponse } from './libraries/rest';
 import dotenv from 'dotenv';
 import http from 'http';
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
 import errorHandler from './middleware/error';
+import country from '../prisma/config/countrycodes.json';
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ import notification from './routes/v1/notifications';
 import payment from './routes/v1/payments';
 import analytic from './routes/v1/analytics';
 import interest from './routes/v1/interest';
+import handleAPI from './routes/v1/handleAPI';
+import cache from './middleware/cache';
 
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/user', user);
@@ -50,11 +53,21 @@ app.use('/api/v1/payment', payment);
 app.use('/api/v1/analytics', analytic);
 app.use('/api/v1/utils', utils);
 app.use('/api/v1/interest', interest);
+app.use('/api/v1/handle', handleAPI);
 
-app.get('/', (req: Request, res: Response) => {
-    res.send('Hello World!');
-});
+app.get('/api/v1/country', cache(60), (req: Request, res: Response) => {
+    const myurl = req.protocol + '://' + req.get('host');
+    const data = country.map((item: any) => {
+        return {
+            name: item.name,
+            dial_code: item.dial_code,
+            code: item.code,
+            flag: `${myurl}/country/${item.code}.svg`
+        }
+    })
 
+    return res.status(200).json(new sendResponse(data, 'Country found', {}, 200));
+})
 
 app.use(errorHandler);
 const server = http.createServer(app);
